@@ -1,0 +1,32 @@
+///////////////////////////////////////////////////////////////
+// 必須設定
+///////////////////////////////////////////////////////////////
+
+// クライアントジェネレータ
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+// データベースコネクション
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas = ["core", "data", "info"]
+}
+
+
+///////////////////////////////////////////////////////////////
+// モデル一覧
+///////////////////////////////////////////////////////////////
+
+// ユーザー情報
+model User {
+  id String @id @db.VarChar(64) // ユーザーID
+  address String @unique @db.VarChar(256) // ユーザーの連絡先（emailかもしれないしTwitterIDかもしれない）
+  name String @unique @db.VarChar(64) // ユーザー名
+  password String @db.VarChar(256) // パスワード（ハッシュ化したもの）
+
+  @@map("user")
+  @@schema("core")
+}
