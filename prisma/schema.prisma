@@ -20,12 +20,25 @@ datasource db {
 // モデル一覧
 ///////////////////////////////////////////////////////////////
 
+// ランクマスタ
+model Rank {
+  id Int @id // ランクID
+  name String @unique @db.VarChar(64) // ランク名称
+  needScore Int @map("need_score") // このランクになるために必要なスコア数
+  users User[] // データベースには追加されない？外部キー
+
+  @@map("rank")
+  @@schema("core")
+}
+
 // ユーザー情報
 model User {
   id String @id @db.VarChar(64) // ユーザーID
   address String @unique @db.VarChar(256) // ユーザーの連絡先（emailかもしれないしTwitterIDかもしれない）
   name String @unique @db.VarChar(64) // ユーザー名
   password String @db.VarChar(256) // パスワード（ハッシュ化したもの）
+  rank Rank @relation(fields: [rankId], references: [id]) // ユーザーランクインスタンス、これ自体は特にDBに追加されない
+  rankId Int @default(0) // ランクIDの格納場所
 
   @@map("user")
   @@schema("core")
