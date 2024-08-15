@@ -4,28 +4,34 @@
 
 // クライアントジェネレータ
 generator client {
-  provider = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema", "postgresqlExtensions"]
+}
+
+// テストデータジェネレータ
+generator fabbrica {
+  provider = "prisma-fabbrica"
+  output   = "../fabbrica"
 }
 
 // データベースコネクション
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  schemas = ["core", "data", "info"]
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  schemas    = ["core", "data", "info"]
+  extensions = [postgis]
 }
-
 
 ///////////////////////////////////////////////////////////////
 // モデル一覧
 ///////////////////////////////////////////////////////////////
 
-// ランクマスタ
+// ランク情報
 model Rank {
-  id Int @id // ランクID
-  name String @unique @db.VarChar(64) // ランク名称
-  needScore Int @map("need_score") // このランクになるために必要なスコア数
-  users User[] // データベースには追加されない？外部キー
+  id        Int    @id // ランクID
+  name      String @unique @db.VarChar(64) // ランク名称
+  needScore Int    @map("need_score") // このランクになるために必要なスコア数
+  users     User[] // 外部キー
 
   @@map("rank")
   @@schema("core")
@@ -33,13 +39,105 @@ model Rank {
 
 // ユーザー情報
 model User {
-  id String @id @db.VarChar(64) // ユーザーID
-  address String @unique @db.VarChar(256) // ユーザーの連絡先（emailかもしれないしTwitterIDかもしれない）
-  name String @unique @db.VarChar(64) // ユーザー名
+  id       String @id @db.VarChar(64) // ユーザーID
+  address  String @unique @db.VarChar(256) // ユーザーの連絡先（emailかもしれないしTwitterIDかもしれない）
+  name     String @unique @db.VarChar(64) // ユーザー名
   password String @db.VarChar(256) // パスワード（ハッシュ化したもの）
-  rank Rank @relation(fields: [rankId], references: [id]) // ユーザーランクインスタンス、これ自体は特にDBに追加されない
-  rankId Int @default(0) // ランクIDの格納場所
+  rank     Rank   @relation(fields: [rankId], references: [id]) // ユーザーランクインスタンス、これ自体は特にDBに追加されない
+  rankId   Int    @default(0) // ランクIDの格納場所
 
   @@map("user")
   @@schema("core")
+}
+
+// 都道府県情報
+model Pref {
+  id       Int                   @id // 都道府県ID
+  name     String                @unique @db.VarChar(16) // 都道府県名
+  centroid Unsupported("POINT")? // 重心座標ポイント
+  area     Area[] // 都道府県に属するエリアの一覧
+
+  @@map("pref")
+  @@schema("core")
+}
+
+// エリア情報
+model Area {
+  prefId       Int // 都道府県コード 
+  pref         Pref           @relation(fields: [prefId], references: [id]) // 属する都道府県コード
+  id           Int             // エリアID
+  name         String         @db.VarChar(32) // エリア名
+  description  String? // エリア領域
+  area         Decimal?       @db.Decimal(6, 2) // エリア面積
+  intersection Intersection[] // 管轄交差点
+
+  @@id([prefId, id])
+  @@unique([prefId, id])
+  @@map("area")
+  @@schema("core")
+}
+
+// 灯器コード
+model Car {
+  code        String   @id @db.VarChar(8) // 車灯コード
+  maker       String   @db.VarChar(32) // メーカー
+  name        String   @db.VarChar(64) // コード名称
+  description String? // 説明
+  comment     String? // コメント
+  LED         Boolean? @default(false) // false = 電球式 true = LED null = 未確定（どっちもある）
+
+  @@map("car")
+  @@schema("core")
+}
+
+// 灯器コード
+model Ped {
+  code        String   @id @db.VarChar(8) // 歩灯コード
+  maker       String   @db.VarChar(32) // メーカー
+  name        String   @db.VarChar(64) // コード名称
+  description String? // 説明
+  comment     String? // コメント
+  LED         Boolean? @default(false) // false = 電球式 true = LED null = 未確定（どっちもある）
+
+  @@map("ped")
+  @@schema("core")
+}
+
+// 交差点情報
+model Intersection {
+  id     String  @db.VarChar(4) // アルファベットが含まれるためVarCharとする
+  areaId Int // エリアID（都道府県IDはここに持たなくても連鎖できる
+  prefId Int // 都道府県ID
+  area   Area   @relation(fields: [areaId, prefId], references: [id, prefId]) // エリア情報
+
+  // 交差点名系
+  name           String  @db.VarChar(128) // 交差点名称（公式）
+  sign           String? @db.VarChar(128) // 地名板名称（地名板が存在しない場合はnull、ある場合はname=sign）
+  isOfficialName Boolean @default(false) @map("is_official_name") // 公式？
+
+  // 交差点メタ情報
+  location      Unsupported("POINT")? // 存在する座標POINT（NULLを許容しているのは予備調査の兼ね合い）
+  decideYear    Int?                  @map("decide_year") // 意思決定年度YYYY
+  operationYear Int?                  @map("operation_year") // 稼働開始年度YYYY（※意思決定年度とほとんど同じはず）
+  refreshYear   Int?                  @map("refresh_year") // 更新年度YYYY（後方互換性）
+
+  // 交差点灯器情報（コードM-M）
+
+  // フラグ関連
+  rover Int     @default(0) // ルーバーかどうか、0=なし、1=丸形ルーバー、2=四角制限、どっちもある場合は1+2=3
+  sound Boolean @default(false) // 音響装置がついているかどうか
+
+  // 親子制御機（※明示的な親子関係が分かる場合を除き、基本的には印字のあるほうを親とする）
+  parent      Intersection?  @relation("controll_family", fields: [childAreaId, childId], references: [areaId, id]) // 親制御機（ない場合もあります）
+  childId     String? // 親子制御機用
+  childAreaId Int? // 子制御機用
+  child       Intersection[] @relation("controll_family")
+
+  // その他
+  comment String? // 備考欄
+
+  @@id([areaId, id])
+  @@unique([areaId, id])
+  @@map("intersection")
+  @@schema("info")
 }

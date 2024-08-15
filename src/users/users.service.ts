@@ -30,7 +30,7 @@ export class UsersService {
     }
 
     // パスワードをハッシュを用いて作成
-    async hashPassword(password: string): Promise<string> {
+    hashPassword(password: string): string {
         // ハッシュパスワードのアルゴリズム
         // (sha256 x 256 + JIDS) x 128
         // ちょっと遅いけど解読は著しく時間かかる
