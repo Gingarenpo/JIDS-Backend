@@ -43,8 +43,11 @@ model User {
   address  String @unique @db.VarChar(256) // ユーザーの連絡先（emailかもしれないしTwitterIDかもしれない）
   name     String @unique @db.VarChar(64) // ユーザー名
   password String @db.VarChar(256) // パスワード（ハッシュ化したもの）
-  rank     Rank   @relation(fields: [rankId], references: [id]) // ユーザーランクインスタンス、これ自体は特にDBに追加されない
-  rankId   Int    @default(0) // ランクIDの格納場所
+
+  // 外部キー関連でくっつくもの
+  rank   Rank    @relation(fields: [rankId], references: [id]) // ユーザーランクインスタンス、これ自体は特にDBに追加されない
+  rankId Int     @default(0) // ランクIDの格納場所
+  Queue  Queue[]
 
   @@map("user")
   @@schema("core")
@@ -65,7 +68,7 @@ model Pref {
 model Area {
   prefId       Int // 都道府県コード 
   pref         Pref           @relation(fields: [prefId], references: [id]) // 属する都道府県コード
-  id           Int             // エリアID
+  id           Int // エリアID
   name         String         @db.VarChar(32) // エリア名
   description  String? // エリア領域
   area         Decimal?       @db.Decimal(6, 2) // エリア面積
@@ -86,6 +89,9 @@ model Car {
   comment     String? // コメント
   LED         Boolean? @default(false) // false = 電球式 true = LED null = 未確定（どっちもある）
 
+  // このコードを内包する交差点
+  intersections CarOfIntersection[]
+
   @@map("car")
   @@schema("core")
 }
@@ -99,13 +105,46 @@ model Ped {
   comment     String? // コメント
   LED         Boolean? @default(false) // false = 電球式 true = LED null = 未確定（どっちもある）
 
+  // このコードを内包する交差点
+  intersections PedOfIntersection[]
+
   @@map("ped")
   @@schema("core")
 }
 
+// 車灯コードと交差点をつなぐ中間テーブル
+model CarOfIntersection {
+  car Car @relation(fields: [carCode], references: [code])
+  carCode String
+
+  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id])
+  prefId Int
+  areaId Int
+  intersectionId String
+
+  @@id([carCode, prefId, areaId, intersectionId])
+  @@map("car_of_intersection")
+  @@schema("info")
+}
+
+// 歩灯コードと交差点をつなぐ中間テーブル
+model PedOfIntersection {
+  ped Ped @relation(fields: [pedCode], references: [code])
+  pedCode String
+
+  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id])
+  prefId Int
+  areaId Int
+  intersectionId String
+
+  @@id([pedCode, prefId, areaId, intersectionId])
+  @@map("ped_of_intersection")
+  @@schema("info")
+}
+
 // 交差点情報
 model Intersection {
-  id     String  @db.VarChar(4) // アルファベットが含まれるためVarCharとする
+  id     String @db.VarChar(4) // アルファベットが含まれるためVarCharとする
   areaId Int // エリアID（都道府県IDはここに持たなくても連鎖できる
   prefId Int // 都道府県ID
   area   Area   @relation(fields: [areaId, prefId], references: [id, prefId]) // エリア情報
@@ -122,22 +161,136 @@ model Intersection {
   refreshYear   Int?                  @map("refresh_year") // 更新年度YYYY（後方互換性）
 
   // 交差点灯器情報（コードM-M）
+  cars CarOfIntersection[]
+  peds PedOfIntersection[]
 
   // フラグ関連
   rover Int     @default(0) // ルーバーかどうか、0=なし、1=丸形ルーバー、2=四角制限、どっちもある場合は1+2=3
   sound Boolean @default(false) // 音響装置がついているかどうか
 
   // 親子制御機（※明示的な親子関係が分かる場合を除き、基本的には印字のあるほうを親とする）
-  parent      Intersection?  @relation("controll_family", fields: [childAreaId, childId], references: [areaId, id]) // 親制御機（ない場合もあります）
+  parent      Intersection?  @relation("controll_family", fields: [childPrefId, childAreaId, childId], references: [prefId, areaId, id]) // 親制御機（ない場合もあります）
   childId     String? // 親子制御機用
   childAreaId Int? // 子制御機用
+  childPrefId Int?
   child       Intersection[] @relation("controll_family")
 
   // その他
   comment String? // 備考欄
 
-  @@id([areaId, id])
-  @@unique([areaId, id])
+  // 詳細関連の外部キーリレーション
+  thumbnails Thumbnail[]
+  details Detail[]
+
+  @@id([prefId, areaId, id])
+  @@unique([prefId, areaId, id])
   @@map("intersection")
+  @@schema("info")
+}
+
+// キュー情報（ユーザー単位というよりはキューで管理する）
+model Queue {
+  id     String @unique @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+  createDate DateTime @default(now())
+  acceptDate DateTime? // キューの承認日時（してない場合NULL）
+  deniedDate DateTime? // キューの却下日時（してない場合NULL）
+  exist Boolean @default(true) // キューが物理的に存在するかどうか
+  comment String? // キュー送信者が追加で送信するコメント
+  statusComment String? // 承認・却下などが行われたときに追加するコメント
+
+  // 外部キー関連
+  thumbnails Thumbnail[]
+  details Detail[]
+
+  @@id([id, userId])
+  @@map("queue")
+  @@schema("info")
+}
+
+
+// サムネイル情報
+model Thumbnail {
+  id Int  @default(autoincrement()) @id // サロゲートキー
+  takeDate DateTime? // 撮影日時（EXIF情報から取得する。ない場合もあるのでNULLあり）
+  result Boolean @default(true) // true=採用、false=非採用
+  comment String?
+
+  // 外部キーリレーション
+  queue Queue @relation(fields: [queueId], references: [id])
+  queueId String
+  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id])
+  prefId Int
+  areaId Int
+  intersectionId String @db.VarChar(4)
+
+  @@map("thumbnail")
+  @@schema("info")
+}
+
+// 現地調査情報ヘッダー（写真そのものに関しては別テーブルに分岐）
+model Detail {
+  id Int @default(autoincrement()) @id // サロゲートキー
+  takeDate DateTime? // 撮影日時（ディレクトリ構成的に絶対入るけど万一を考えてNULL許容）
+  comment String? // 単純な備考欄
+  memo String? // 撮影メモ（これも入るけど万一を考えてNULL許容）
+
+  // 外部キーリレーション
+  queue Queue @relation(fields: [queueId], references: [id])
+  queueId String 
+  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id])
+  prefId Int
+  areaId Int
+  intersectionId String @db.VarChar(4)
+
+  pictures DetailPicture[]
+
+
+  @@map("detail")
+  @@schema("info")
+}
+
+// 灯器種類
+enum DetailType {
+  S // 車灯
+  H // 歩灯
+  M // 機械類
+  O // その他
+  A // 全景図
+  C // 制御機
+  P // 押しボタン（現在未使用）
+  K // 感知器（現在未使用）
+  @@schema("info")
+}
+
+// 灯器色
+enum DetailLight {
+  G // 青
+  Y // 黄色
+  R // 赤
+  X // 矢印
+  F // 消灯
+  @@schema("info")
+} 
+
+// 現地調査情報の写真ごとのデータ（一応後方互換性で採点できるようにしておくためのもの）
+// 最悪切り離せる
+model DetailPicture {
+  type DetailType // 灯器の種類（1文字）
+  number Int // 各種類別の通し番号
+  light DetailLight? // 灯器色（SHのみ使用）
+  subNumber Int? // 第二通し番号（車灯矢印、押しボタン、制御機、感知器、機械類、その他に使用
+  plate Boolean @default(false) // 銘板の場合はtrue
+
+  // 採点基準的なもの（現在未使用）
+  
+
+  // 外部リレーション
+  detail Detail @relation(fields: [detailId], references: [id])
+  detailId Int
+
+  @@id([type, number])
+  @@map("detail_picture")
   @@schema("info")
 }
