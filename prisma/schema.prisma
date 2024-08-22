@@ -5,7 +5,7 @@
 // クライアントジェネレータ
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema", "postgresqlExtensions"]
+  previewFeatures = ["multiSchema", "postgresqlExtensions", "relationJoins"]
 }
 
 // テストデータジェネレータ
@@ -72,6 +72,7 @@ model Area {
   name         String         @db.VarChar(32) // エリア名
   description  String? // エリア領域
   area         Decimal?       @db.Decimal(6, 2) // エリア面積
+  unknownStart Int @default(801) // 不明番号とみなす開始位置
   intersection Intersection[] // 管轄交差点
 
   @@id([prefId, id])
@@ -88,6 +89,9 @@ model Car {
   description String? // 説明
   comment     String? // コメント
   LED         Boolean? @default(false) // false = 電球式 true = LED null = 未確定（どっちもある）
+  createDate DateTime @db.Date @map("create_date")
+  delFlg Boolean @default(false) @map("del_flg")
+  
 
   // このコードを内包する交差点
   intersections CarOfIntersection[]
@@ -104,6 +108,8 @@ model Ped {
   description String? // 説明
   comment     String? // コメント
   LED         Boolean? @default(false) // false = 電球式 true = LED null = 未確定（どっちもある）
+  createDate DateTime @db.Date @map("create_date")
+  delFlg Boolean @default(false) @map("del_flg")
 
   // このコードを内包する交差点
   intersections PedOfIntersection[]
@@ -125,6 +131,8 @@ model CarOfIntersection {
   @@id([carCode, prefId, areaId, intersectionId])
   @@map("car_of_intersection")
   @@schema("info")
+  @@index([prefId, areaId, intersectionId])
+  @@index([carCode])
 }
 
 // 歩灯コードと交差点をつなぐ中間テーブル
@@ -140,17 +148,33 @@ model PedOfIntersection {
   @@id([pedCode, prefId, areaId, intersectionId])
   @@map("ped_of_intersection")
   @@schema("info")
+  @@index([prefId, areaId, intersectionId])
+  @@index([pedCode])
+}
+
+// 交差点状態
+enum IntersectionStatus {
+  LIVE
+  GONE
+  MOVE
+  MERGE
+  UNKNOWN
+  @@schema("info")
 }
 
 // 交差点情報
 model Intersection {
-  id     String @db.VarChar(4) // アルファベットが含まれるためVarCharとする
+  id     String @db.VarChar(8) // アルファベットが含まれるためVarCharとする
   areaId Int // エリアID（都道府県IDはここに持たなくても連鎖できる
   prefId Int // 都道府県ID
   area   Area   @relation(fields: [areaId, prefId], references: [id, prefId]) // エリア情報
+  status IntersectionStatus @default(LIVE)
+
+  // 後方互換
+  road String? @db.VarChar(64) // 所属道路
 
   // 交差点名系
-  name           String  @db.VarChar(128) // 交差点名称（公式）
+  name           String?  @db.VarChar(128) // 交差点名称（公式）
   sign           String? @db.VarChar(128) // 地名板名称（地名板が存在しない場合はnull、ある場合はname=sign）
   isOfficialName Boolean @default(false) @map("is_official_name") // 公式？
 
@@ -223,7 +247,7 @@ model Thumbnail {
   intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id])
   prefId Int
   areaId Int
-  intersectionId String @db.VarChar(4)
+  intersectionId String @db.VarChar(8)
 
   @@map("thumbnail")
   @@schema("info")
@@ -242,7 +266,7 @@ model Detail {
   intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id])
   prefId Int
   areaId Int
-  intersectionId String @db.VarChar(4)
+  intersectionId String @db.VarChar(8)
 
   pictures DetailPicture[]
 

@@ -11,6 +11,7 @@ import type { Queue } from "@prisma/client";
 import type { Thumbnail } from "@prisma/client";
 import type { Detail } from "@prisma/client";
 import type { DetailPicture } from "@prisma/client";
+import type { IntersectionStatus } from "@prisma/client";
 import type { DetailType } from "@prisma/client";
 import type { DetailLight } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
@@ -151,6 +152,7 @@ type AreaFactoryDefineInput = {
     name?: string;
     description?: string | null;
     area?: (Prisma.Decimal | Prisma.DecimalJsLike | string) | null;
+    unknownStart?: number;
     pref: AreaprefFactory | Prisma.PrefCreateNestedOneWithoutAreaInput;
     intersection?: Prisma.IntersectionCreateNestedManyWithoutAreaInput;
 };
@@ -192,6 +194,8 @@ type CarFactoryDefineInput = {
     description?: string | null;
     comment?: string | null;
     LED?: boolean | null;
+    createDate?: Date;
+    delFlg?: boolean;
     intersections?: Prisma.CarOfIntersectionCreateNestedManyWithoutCarInput;
 };
 type CarTransientFields = Record<string, unknown> & Partial<Record<keyof CarFactoryDefineInput, never>>;
@@ -232,6 +236,8 @@ type PedFactoryDefineInput = {
     description?: string | null;
     comment?: string | null;
     LED?: boolean | null;
+    createDate?: Date;
+    delFlg?: boolean;
     intersections?: Prisma.PedOfIntersectionCreateNestedManyWithoutPedInput;
 };
 type PedTransientFields = Record<string, unknown> & Partial<Record<keyof PedFactoryDefineInput, never>>;
@@ -361,7 +367,9 @@ type IntersectionparentFactory = {
 };
 type IntersectionFactoryDefineInput = {
     id?: string;
-    name?: string;
+    status?: IntersectionStatus;
+    road?: string | null;
+    name?: string | null;
     sign?: string | null;
     isOfficialName?: boolean;
     decideYear?: number | null;

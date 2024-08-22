@@ -507,7 +507,8 @@ function autoGenerateCarScalarsOrEnums({ seq }) {
     return {
         code: (0, internal_1.getScalarFieldValueGenerator)().String({ modelName: "Car", fieldName: "code", isId: true, isUnique: false, seq }),
         maker: (0, internal_1.getScalarFieldValueGenerator)().String({ modelName: "Car", fieldName: "maker", isId: false, isUnique: false, seq }),
-        name: (0, internal_1.getScalarFieldValueGenerator)().String({ modelName: "Car", fieldName: "name", isId: false, isUnique: false, seq })
+        name: (0, internal_1.getScalarFieldValueGenerator)().String({ modelName: "Car", fieldName: "name", isId: false, isUnique: false, seq }),
+        createDate: (0, internal_1.getScalarFieldValueGenerator)().DateTime({ modelName: "Car", fieldName: "createDate", isId: false, isUnique: false, seq })
     };
 }
 function defineCarFactoryInternal({ defaultData: defaultDataResolver, onAfterBuild, onBeforeCreate, onAfterCreate, traits: traitsDefs = {} }, defaultTransientFieldValues) {
@@ -589,7 +590,8 @@ function autoGeneratePedScalarsOrEnums({ seq }) {
     return {
         code: (0, internal_1.getScalarFieldValueGenerator)().String({ modelName: "Ped", fieldName: "code", isId: true, isUnique: false, seq }),
         maker: (0, internal_1.getScalarFieldValueGenerator)().String({ modelName: "Ped", fieldName: "maker", isId: false, isUnique: false, seq }),
-        name: (0, internal_1.getScalarFieldValueGenerator)().String({ modelName: "Ped", fieldName: "name", isId: false, isUnique: false, seq })
+        name: (0, internal_1.getScalarFieldValueGenerator)().String({ modelName: "Ped", fieldName: "name", isId: false, isUnique: false, seq }),
+        createDate: (0, internal_1.getScalarFieldValueGenerator)().DateTime({ modelName: "Ped", fieldName: "createDate", isId: false, isUnique: false, seq })
     };
 }
 function definePedFactoryInternal({ defaultData: defaultDataResolver, onAfterBuild, onBeforeCreate, onAfterCreate, traits: traitsDefs = {} }, defaultTransientFieldValues) {
@@ -863,8 +865,7 @@ function isIntersectionparentFactory(x) {
 }
 function autoGenerateIntersectionScalarsOrEnums({ seq }) {
     return {
-        id: (0, internal_1.getScalarFieldValueGenerator)().String({ modelName: "Intersection", fieldName: "id", isId: true, isUnique: true, seq }),
-        name: (0, internal_1.getScalarFieldValueGenerator)().String({ modelName: "Intersection", fieldName: "name", isId: false, isUnique: false, seq })
+        id: (0, internal_1.getScalarFieldValueGenerator)().String({ modelName: "Intersection", fieldName: "id", isId: true, isUnique: true, seq })
     };
 }
 function defineIntersectionFactoryInternal({ defaultData: defaultDataResolver, onAfterBuild, onBeforeCreate, onAfterCreate, traits: traitsDefs = {} }, defaultTransientFieldValues) {

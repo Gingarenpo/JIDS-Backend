@@ -16,6 +16,11 @@ export const Throttles = {
         limit: 100,
         ttl: 60 * 60 * 24
     },
+    // 情報取得（ヘビー）
+    info_get_many: {
+        limit: 20,
+        ttl: 60 * 60 * 24
+    },
     // 情報登録系
     info_post: {
         limit: 10,
