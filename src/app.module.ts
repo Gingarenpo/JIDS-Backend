@@ -7,12 +7,13 @@ import { UsersModule } from './users/users.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { DatasController } from './datas/datas.controller';
 import { DatasModule } from './datas/datas.module';
-import { AuthService } from './auth/auth.service';
-import { JwtModule } from '@nestjs/jwt';
+import { MetasModule } from './metas/metas.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      envFilePath: [".env.local", ".env"],
+    }),
     AuthModule,
     UsersModule,
     ThrottlerModule.forRoot([{
@@ -20,6 +21,7 @@ import { JwtModule } from '@nestjs/jwt';
       limit: 10,
     }]),
     DatasModule,
+    MetasModule,
   ],
   controllers: [AppController, DatasController],
   providers: [AppService,

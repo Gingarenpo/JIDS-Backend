@@ -43,6 +43,8 @@ model User {
   address  String @unique @db.VarChar(256) // ユーザーの連絡先（emailかもしれないしTwitterIDかもしれない）
   name     String @unique @db.VarChar(64) // ユーザー名
   password String @db.VarChar(256) // パスワード（ハッシュ化したもの）
+  createDate DateTime @default(now()) // 作成日時
+  loginDate DateTime? // ログイン日時
 
   // 外部キー関連でくっつくもの
   rank   Rank    @relation(fields: [rankId], references: [id]) // ユーザーランクインスタンス、これ自体は特にDBに追加されない
@@ -53,12 +55,22 @@ model User {
   @@schema("core")
 }
 
+// 都道府県管理タイプ
+enum PrefManageType {
+  POLICE // 警察署
+  CITY // 市区町村（広島とか）
+  ALL // 県下統一（京都とか）
+
+  @@schema("core")
+}
+
 // 都道府県情報
 model Pref {
   id       Int                   @id // 都道府県ID
   name     String                @unique @db.VarChar(16) // 都道府県名
   centroid Unsupported("POINT")? // 重心座標ポイント
   area     Area[] // 都道府県に属するエリアの一覧
+  manage PrefManageType @default(POLICE) // 都道府県管理タイプ
 
   @@map("pref")
   @@schema("core")
@@ -73,6 +85,7 @@ model Area {
   description  String? // エリア領域
   area         Decimal?       @db.Decimal(6, 2) // エリア面積
   unknownStart Int @default(801) // 不明番号とみなす開始位置
+  managed Boolean @default(true) // 公安委管轄？
   intersection Intersection[] // 管轄交差点
 
   @@id([prefId, id])
@@ -251,6 +264,8 @@ model Thumbnail {
 
   @@map("thumbnail")
   @@schema("info")
+  @@index([prefId, areaId, intersectionId])
+  @@index([queueId])
 }
 
 // 現地調査情報ヘッダー（写真そのものに関しては別テーブルに分岐）
@@ -273,6 +288,8 @@ model Detail {
 
   @@map("detail")
   @@schema("info")
+  @@index([prefId, areaId, intersectionId])
+  @@index([queueId])
 }
 
 // 灯器種類
@@ -301,11 +318,13 @@ enum DetailLight {
 // 現地調査情報の写真ごとのデータ（一応後方互換性で採点できるようにしておくためのもの）
 // 最悪切り離せる
 model DetailPicture {
+  id Int // サロゲート
   type DetailType // 灯器の種類（1文字）
   number Int // 各種類別の通し番号
   light DetailLight? // 灯器色（SHのみ使用）
   subNumber Int? // 第二通し番号（車灯矢印、押しボタン、制御機、感知器、機械類、その他に使用
   plate Boolean @default(false) // 銘板の場合はtrue
+  comment String? // 灯器についてのコメント
 
   // 採点基準的なもの（現在未使用）
   
@@ -314,7 +333,7 @@ model DetailPicture {
   detail Detail @relation(fields: [detailId], references: [id])
   detailId Int
 
-  @@id([type, number])
+  @@id([id, detailId])
   @@map("detail_picture")
   @@schema("info")
 }

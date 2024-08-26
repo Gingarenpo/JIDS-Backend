@@ -1,11 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { Area, Intersection, IntersectionStatus, Pref, PrismaClient } from '@prisma/client';
+import { createURLFromFilePath } from 'src/common/helper';
+import { execSync } from 'child_process';
+import { app } from 'src/main';
 
 // TODO: エリアなどで指定した中でもcarsとpedを名前の配列にする
 
 // 多分本来は都道府県とエリアと交差点分けるべきだけどとりあえず今は結合しちゃっている
 @Injectable()
 export class DatasService {
+
+    private DATA_DIR = process.env.DATA_DIR;
 
     private dbClient: PrismaClient = new PrismaClient({});
 
@@ -14,8 +19,10 @@ export class DatasService {
     // 都道府県一覧を取得するメソッド
     // 第二引数と第三引数で各エリア・交差点情報を取得するが大変重い
     // とくに第三引数は返ってこないので指定すべきではない
+    // 何も指定しない場合、エリアのカウントを返すし、第二引数だけ指定してある場合は交差点のカウントを返す
     async findAllPref(withArea: boolean = false, withIntersection: boolean = false): Promise<Pref[]> {
         let prefs;
+        const url = await app.getUrl();
         if (withIntersection) {
             prefs = await this.dbClient.pref.findMany({
                 include: {
@@ -49,22 +56,94 @@ export class DatasService {
                                     cars: intersection.cars.map(car => car.carCode),
                                     peds: intersection.peds.map(ped => ped.pedCode),
                                 }
-                            })
+                            }),
                         }
-                    })
+                    }),
                 }
             })
         }
         else {
             prefs = await this.dbClient.pref.findMany({
                 include: {
-                    area: withArea ? true : false,
+                    area: withArea ? {
+                        include: {
+                            _count: {
+                                select: { intersection: true }
+                            }
+                        },
+                        orderBy: {id: "asc"}
+                    } : false,
+                    _count: !withArea ? { select: { area: true } } : false,
                 },
                 orderBy: {
                     id: "asc"
                 }
             });
+
+            if (!withArea) {
+                // TODO: RAWSQLできれば使いたくないので解決策を模索したい
+                // 交差点のカウント情報をSQLを用いて取得する
+                const meta = await this.dbClient.$queryRaw`
+                    SELECT
+                        p."id",
+                        -- 検索済みの交差点のカウント（行方不明除く）
+                        COUNT((i.name IS NOT NULL OR i.status = 'UNKNOWN') OR NULL)::INTEGER AS search_count,
+                        -- 未調査含む現時点のカウント
+                        COUNT(i.id)::INTEGER AS all_count,
+                        -- 現存している交差点のカウント
+                        COUNT(i.status = 'LIVE' AND i.name IS NOT NULL OR NULL)::INTEGER AS exist_count,
+                        -- サムネイルを撮影済みのカウント
+                        COUNT((SELECT TRUE FROM info.thumbnail t WHERE i."prefId" = t."prefId" AND i."areaId" = t."areaId" AND i."id" = t."intersectionId" GROUP BY t."prefId", t."areaId", t."intersectionId") OR NULL)::INTEGER AS thumbnail_count,
+                        -- 現地調査済みのカウント
+                        COUNT((SELECT TRUE FROM info.detail d WHERE i."prefId" = d."prefId" AND i."areaId" = d."areaId" AND i."id" = d."intersectionId" GROUP BY d."prefId", d."areaId", d."intersectionId") OR NULL)::INTEGER AS detail_count
+                    FROM
+                        core.pref p
+                    LEFT OUTER JOIN
+                        info.intersection i
+                    ON
+                        p."id" = i."prefId"
+                    GROUP BY
+                        p.id
+                    ORDER BY
+                        p.id
+                `;
+
+                // エリアのカウントがネストになるのでそれをどうにかする
+                prefs = prefs.map(pref => {
+                    return {
+                        ...pref,
+                        area_count: pref._count.area, // ネストしちゃっているのでカウントだけにする
+                        _count: undefined, // 消す
+                        ...meta[pref.id - 1],
+                    }
+                })
+            }
+            else {
+                // 交差点のカウントがネストになるのでそれをどうにかする
+                prefs = prefs.map(pref => {
+                    return {
+                        ...pref,
+                        area: pref.area.map(area => {
+                            return {
+                                ...area,
+                                intersection_count: area._count.intersection,
+                                _count: undefined
+                            }
+                        }),
+                    }
+                })
+            }
         }
+
+        // IO関連：prefsの中身において、画像を取得しそのパスを載せる
+        prefs = await prefs.map((pref) =>{
+            const img = this.getRandomImage(pref.id);
+            return {
+                
+                ...pref,
+                thumbnail: img != null ? url + createURLFromFilePath(img) : null,
+            }
+        })
 
         return prefs;
     }
@@ -72,15 +151,126 @@ export class DatasService {
     // 都道府県を指定して情報を取得するメソッド
     // 第二引数にtrueを入れるとエリアも取得し、第三引数にtrueを入れると交差点も取得する
     // 第三引数まで入れるとクソ重い
-    async findPref(id: number, withArea: boolean = false, withIntersection: boolean = false): Promise<Pref | null> {
-        const pref = await this.dbClient.pref.findUnique({
-            where: {
-                id: id
-            },
-            include: {
-                area: withArea ? { include: { intersection: withIntersection ? { orderBy: {id: "asc"}} : false }, orderBy: {id: "asc"} } : false
+    async findPref(id: number, withArea: boolean = false, withIntersection: boolean = false, withDetails: boolean = false): Promise<Pref | null> {
+        const url = await app.getUrl();
+        let pref;
+        if (withIntersection) {
+            pref = await this.dbClient.pref.findUnique({
+                where: {
+                    id: id
+                },
+                include: {
+                    area: withArea ? {
+                        include: {
+                            intersection: {
+                                orderBy: {id: "asc"},
+                                include: {
+                                    cars: {
+                                        select: {
+                                            carCode: true
+                                        }
+                                    },
+                                    peds: {
+                                        select: {
+                                            pedCode: true
+                                        }
+                                    },
+                                    details: withDetails ? {
+                                        orderBy: {
+                                            id: "desc"
+                                        },
+                                    } : false,
+                                    thumbnails: withDetails ? {
+                                        orderBy: {
+                                            id: "desc"
+                                        },
+                                    } : false,
+                                }
+                            }
+                        },
+                        orderBy: {
+                            id: "asc"
+                        }
+                    } : false
+                }
+            });
+            pref.area = pref.area.map(area => {
+                return {
+                    ...area,
+                    intersection: area.intersection.map(intersection => {
+                        return {
+                            ...intersection,
+                            cars: intersection.cars.map(car => car.carCode),
+                            peds: intersection.peds.map(ped => ped.pedCode),
+                        }
+                    }),
+                }
+            })
+        }
+
+        else {
+            pref = await this.dbClient.pref.findUnique({
+                where: {
+                    id: id
+                },
+                include: {
+                    area: withArea ? {
+                        orderBy: {
+                            id: "asc"
+                        }
+                    } : false
+                }
+            });
+        }
+
+
+        if (withArea && !withIntersection) {
+            // TODO: RAWSQLできれば使いたくないので解決策を模索したい
+            // 交差点のカウント情報をSQLを用いて取得する
+            const meta = await this.dbClient.$queryRaw`
+                SELECT
+                    a."id",
+                    -- 検索済みの交差点のカウント（行方不明除く）
+                    COUNT((i.name IS NOT NULL OR i.status = 'UNKNOWN') OR NULL)::INTEGER AS search_count,
+                    -- 未調査含む現時点のカウント
+                    COUNT(i.id)::INTEGER AS all_count,
+                    -- 現存している交差点のカウント
+                    COUNT(i.status = 'LIVE' AND i.name IS NOT NULL OR NULL)::INTEGER AS exist_count,
+                    -- サムネイルを撮影済みのカウント
+                    COUNT((SELECT TRUE FROM info.thumbnail t WHERE i."prefId" = t."prefId" AND i."areaId" = t."areaId" AND i."id" = t."intersectionId" GROUP BY t."prefId", t."areaId", t."intersectionId") OR NULL)::INTEGER AS thumbnail_count,
+                    -- 現地調査済みのカウント
+                    COUNT((SELECT TRUE FROM info.detail d WHERE i."prefId" = d."prefId" AND i."areaId" = d."areaId" AND i."id" = d."intersectionId" GROUP BY d."prefId", d."areaId", d."intersectionId") OR NULL)::INTEGER AS detail_count
+                FROM
+                    core.area a
+                LEFT OUTER JOIN
+                    info.intersection i
+                ON
+                    a."prefId" = i."prefId"
+                AND a."id" = i."areaId"
+                WHERE
+                    a."prefId" = ${id}
+                GROUP BY
+                    a.id
+                ORDER BY
+                    a.id
+            `;
+
+            pref.area = pref.area.map((area, i) => {
+                return {
+                    ...area,
+                    ...meta[i],
+                }
+            })
+        }
+
+        // IO関連：prefの中身において、画像を取得しそのパスを載せる
+        pref.area = await pref.area.map((area) =>{
+            const img = this.getRandomImage(id, area.id);
+            return {
+                ...area,
+                thumbnail: img != null ? url + createURLFromFilePath(img) : null,
             }
-        });
+        })
 
         return pref;
     }
@@ -340,5 +530,31 @@ export class DatasService {
         return intersections_result;
     }
 
+    // 都道府県の画像をランダムで取得しそのURLを返す（※パスしか返しません）
+    // TODO: なんかもっとはやく取得できる方法がないか探す
+    private getRandomImage(pref: number, area?: number): string | null {
+        // OS Shell機能を利用して該当する画像を取得
+        try {
+            let imgs_str = execSync(`find ${this.DATA_DIR}${pref}/${area??""} -name '*.JPG' -maxdepth 2`, {maxBuffer: 1048576 * 1024, stdio: ["ignore", "pipe", "ignore"]}).toString();
+            if (!imgs_str) {
+                return null;
+            }
+            const imgs = imgs_str.split("\n").filter(e => e !== "");
+            
+            return imgs[Math.floor(Math.random() * imgs.length - 1)];
+        }
+        catch (e) {
+            if (e instanceof Error) {
+                // findが失敗するのは確実にシステムエラー
+                 
+            }
+            return null;
+        }
+
+        
+        
+    }
+
+    
     
 }

@@ -80,8 +80,8 @@ export class DatasController {
     // 特にユーザーの認証いらないがレートはつける
     @Get(":id")
     @Throttle({default: Throttles.info_get})
-    async getPref(@Param("id") id:string, @Query("withArea") withArea?, @Query("withIntersection") withIntersection?) {
-        const pref = await new DatasService().findPref(parseInt(id), withArea, withIntersection);
+    async getPref(@Param("id") id:string, @Query("withArea") withArea?, @Query("withIntersection") withIntersection?, @Query("withDetails") withDetails?) {
+        const pref = await new DatasService().findPref(parseInt(id), withArea, withIntersection, withDetails);
         if (!pref) {
             throw JIDSNotFound("都道府県が見つかりません。");
         }

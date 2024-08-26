@@ -11,6 +11,7 @@ import type { Queue } from "@prisma/client";
 import type { Thumbnail } from "@prisma/client";
 import type { Detail } from "@prisma/client";
 import type { DetailPicture } from "@prisma/client";
+import type { PrefManageType } from "@prisma/client";
 import type { IntersectionStatus } from "@prisma/client";
 import type { DetailType } from "@prisma/client";
 import type { DetailLight } from "@prisma/client";
@@ -73,6 +74,8 @@ type UserFactoryDefineInput = {
     address?: string;
     name?: string;
     password?: string;
+    createDate?: Date;
+    loginDate?: Date | null;
     rank?: UserrankFactory | Prisma.RankCreateNestedOneWithoutUsersInput;
     Queue?: Prisma.QueueCreateNestedManyWithoutUserInput;
 };
@@ -110,6 +113,7 @@ export declare const defineUserFactory: UserFactoryBuilder;
 type PrefFactoryDefineInput = {
     id?: number;
     name?: string;
+    manage?: PrefManageType;
     area?: Prisma.AreaCreateNestedManyWithoutPrefInput;
 };
 type PrefTransientFields = Record<string, unknown> & Partial<Record<keyof PrefFactoryDefineInput, never>>;
@@ -153,6 +157,7 @@ type AreaFactoryDefineInput = {
     description?: string | null;
     area?: (Prisma.Decimal | Prisma.DecimalJsLike | string) | null;
     unknownStart?: number;
+    managed?: boolean;
     pref: AreaprefFactory | Prisma.PrefCreateNestedOneWithoutAreaInput;
     intersection?: Prisma.IntersectionCreateNestedManyWithoutAreaInput;
 };
@@ -562,11 +567,13 @@ type DetailPicturedetailFactory = {
     build: () => PromiseLike<Prisma.DetailCreateNestedOneWithoutPicturesInput["create"]>;
 };
 type DetailPictureFactoryDefineInput = {
+    id?: number;
     type?: DetailType;
     number?: number;
     light?: DetailLight | null;
     subNumber?: number | null;
     plate?: boolean;
+    comment?: string | null;
     detail: DetailPicturedetailFactory | Prisma.DetailCreateNestedOneWithoutPicturesInput;
 };
 type DetailPictureTransientFields = Record<string, unknown> & Partial<Record<keyof DetailPictureFactoryDefineInput, never>>;
@@ -586,11 +593,11 @@ export interface DetailPictureFactoryInterfaceWithoutTraits<TTransients extends 
     buildCreateInput(inputData?: Partial<Prisma.DetailPictureCreateInput & TTransients>): PromiseLike<Prisma.DetailPictureCreateInput>;
     buildList(list: readonly Partial<Prisma.DetailPictureCreateInput & TTransients>[]): PromiseLike<Prisma.DetailPictureCreateInput[]>;
     buildList(count: number, item?: Partial<Prisma.DetailPictureCreateInput & TTransients>): PromiseLike<Prisma.DetailPictureCreateInput[]>;
-    pickForConnect(inputData: DetailPicture): Pick<DetailPicture, "type" | "number">;
+    pickForConnect(inputData: DetailPicture): Pick<DetailPicture, "id" | "detailId">;
     create(inputData?: Partial<Prisma.DetailPictureCreateInput & TTransients>): PromiseLike<DetailPicture>;
     createList(list: readonly Partial<Prisma.DetailPictureCreateInput & TTransients>[]): PromiseLike<DetailPicture[]>;
     createList(count: number, item?: Partial<Prisma.DetailPictureCreateInput & TTransients>): PromiseLike<DetailPicture[]>;
-    createForConnect(inputData?: Partial<Prisma.DetailPictureCreateInput & TTransients>): PromiseLike<Pick<DetailPicture, "type" | "number">>;
+    createForConnect(inputData?: Partial<Prisma.DetailPictureCreateInput & TTransients>): PromiseLike<Pick<DetailPicture, "id" | "detailId">>;
 }
 export interface DetailPictureFactoryInterface<TTransients extends Record<string, unknown> = Record<string, unknown>, TTraitName extends TraitName = TraitName> extends DetailPictureFactoryInterfaceWithoutTraits<TTransients> {
     use(name: TTraitName, ...names: readonly TTraitName[]): DetailPictureFactoryInterfaceWithoutTraits<TTransients>;
