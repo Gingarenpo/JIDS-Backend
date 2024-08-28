@@ -5,7 +5,7 @@
 // クライアントジェネレータ
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema", "postgresqlExtensions", "relationJoins"]
+  previewFeatures = ["multiSchema", "postgresqlExtensions", "relationJoins", "omitApi"]
 }
 
 // テストデータジェネレータ
