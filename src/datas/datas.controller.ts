@@ -58,8 +58,23 @@ export class DatasController {
         @Query("withDetail") withDetail: boolean = false
     ): Promise<any> {
         const result = await this.datasService.getArea(parseInt(prefId), parseInt(areaId), withIntersection, withDetail);
-        if (Object.keys(result).length === 0) {
+        if (result == null || Object.keys(result).length === 0) {
             throw JIDSNotFound("指定したエリアは存在しません。");
+        }
+        return result;
+    }
+
+    @Get(":prefId/:areaId/:intersectionId")
+    @Throttle({default: Throttles.info_get})
+    async getIntersection(
+        @Param("prefId") prefId,
+        @Param("areaId") areaId,
+        @Param("intersectionId") intersectionId,
+        @Query("withDetail") withDetail: boolean = false
+    ): Promise<any> {
+        const result = await this.datasService.getIntersection(parseInt(prefId), parseInt(areaId), intersectionId, withDetail);
+        if (Object.keys(result).length === 0) {
+            throw JIDSNotFound("指定した交差点は存在しません。");
         }
         return result;
     }

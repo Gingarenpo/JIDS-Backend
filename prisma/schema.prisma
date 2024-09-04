@@ -192,7 +192,7 @@ model Intersection {
   isOfficialName Boolean @default(false) @map("is_official_name") // 公式？
 
   // 交差点メタ情報
-  location      Unsupported("POINT")? // 存在する座標POINT（NULLを許容しているのは予備調査の兼ね合い）
+  location      Unsupported("GEOMETRY")? // 存在する座標POINT（NULLを許容しているのは予備調査の兼ね合い）
   decideYear    Int?                  @map("decide_year") // 意思決定年度YYYY
   operationYear Int?                  @map("operation_year") // 稼働開始年度YYYY（※意思決定年度とほとんど同じはず）
   refreshYear   Int?                  @map("refresh_year") // 更新年度YYYY（後方互換性）

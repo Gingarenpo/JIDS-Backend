@@ -26,9 +26,14 @@ export class DatasService {
                 "areaId",
                 id,
                 ST_X(location::GEOMETRY) as x,
-                ST_Y(location::GEOMETRY) as y
+                ST_Y(location::GEOMETRY) as y,
+                CONCAT(pref_name, group_name, city_name, n03_005) AS city
             FROM
                 info.intersection
+            LEFT OUTER JOIN
+                meta.cities
+            ON
+                ST_Contains(geom, location)
             ${prefId !== undefined || areaId !== undefined || intersectionId !== undefined ? Prisma.sql`WHERE` : Prisma.sql``}
             ${prefId ? Prisma.sql`"prefId" = ${Prisma.sql([prefId.toString()])}` : Prisma.sql``}
             ${prefId && areaId ? Prisma.sql`AND` : Prisma.sql``}
@@ -49,7 +54,8 @@ export class DatasService {
             }
             result[q.prefId][q.areaId][q.id] = {
                 x: q.x,
-                y: q.y
+                y: q.y,
+                city: q.city
             };
             
         }
@@ -88,6 +94,7 @@ export class DatasService {
 
         return result;
     }
+
 
     /**
      * 
@@ -213,14 +220,17 @@ export class DatasService {
                 id: areaId
             },
             select: {
-                // prefIdいらん
+                prefId: true,
                 id: true,
                 name: true,
                 description: true,
                 area: true,
                 unknownStart: true,
                 managed: true,
-                intersection: withIntersection ? this.prismaQueryIntersections(undefined, undefined, undefined, withDetail) : false
+                intersection: withIntersection ? this.prismaQueryIntersections(undefined, undefined, undefined, withDetail) : false,
+            },
+            orderBy: {
+                id: 'asc',
             }
         }
     }
@@ -245,10 +255,6 @@ export class DatasService {
                 areaId: areaId,
                 id: intersectionId
             },
-            omit: {
-                prefId: true,
-                areaId: true,
-            },
             include: {
                 cars: {
                     select: {
@@ -271,7 +277,8 @@ export class DatasService {
                                 id: true,
                                 userId: true,
                             }
-                        }
+                        },
+                        pictures: true,
                     },
                     orderBy: {
                         id: 'desc',
@@ -296,6 +303,9 @@ export class DatasService {
                         id: 'desc',
                     }
                 }
+            },
+            orderBy: {
+                id: 'asc',
             }
         }
     }
@@ -331,6 +341,7 @@ export class DatasService {
      */
     async formatIntersection(prefId: number, areaId: number, intersections: Array<any>): Promise<any> {
         intersections = intersections.sort((a, b) => a.id - b.id);
+        const host = await app.getUrl();
         const locations = await this.getIntersectionLocations(prefId, areaId);
         return await Promise.all(intersections.map(async (intersection) => {
             return {
@@ -339,6 +350,33 @@ export class DatasService {
                 cars: intersection.cars.map((car) => car.carCode),
                 peds: intersection.peds.length > 0 && intersection.peds[0].pedCode != "-" ? intersection.peds.map((ped) => ped.pedCode) : [],
                 location: locations[prefId][areaId][intersection.id],
+                thumbnail: await this.getThumbnail(prefId, areaId, intersection.id),
+
+                // 現地調査データに関しては存在するものと仮定してURLを自動構築する
+                details: intersection.details !== undefined ? intersection.details.map((detail) => {
+                    // 各Picturesにおいて繰り返す
+                    return {
+                        ...detail,
+                        pictures: detail.pictures.map((picture) => {
+                            // takeDateをYYYY-MMDD形式に変更
+                            const date = new Date(detail.takeDate);
+                            const takeDate = `${date.getFullYear()}-${("00" + (date.getMonth() + 1)).slice(-2)}${("00"+date.getDate()).slice(-2)}`;
+
+                            // 写真名称を自動命名
+                            let fileName = `${picture.type}${picture.number}`;
+                            if (!picture.plate) {
+                                fileName += `-${picture.light ?? ''}${picture.subNumber ?? ''}`;
+                            }
+                            if (picture.plate && picture.light) {
+                                fileName += `${picture.light}${picture.subNumber ?? ''}`;
+                            }
+                            return {
+                                ...picture,
+                                url: `${host}${process.env.DATA_PREFIX}${prefId}/${areaId}/${intersection.id}/${takeDate}/${fileName}.JPG`,
+                            }
+                        })
+                    }
+                }) : undefined,
             }
         }));
     }
@@ -414,9 +452,12 @@ export class DatasService {
                 },
             },
             include: {
-                intersection: withIntersection ? this.prismaQueryIntersections(prefId, areaId, undefined, withDetail) : false
-            }
+                intersection: withIntersection ? this.prismaQueryIntersections(prefId, areaId, undefined, withDetail) : false,
+                pref: true,
+            },
         });
+
+        if (data == null) return null;
 
         // エリアを整形
         if (withIntersection) {
@@ -437,5 +478,18 @@ export class DatasService {
 
         return data;
         
+    }
+
+    /**
+     * 
+     * @param prefId 都道府県ID。
+     * @param areaId エリアID。
+     * @param intersectionId 交差点ID。
+     * @param withDetail 詳細情報を含めるかどうか。
+     * @returns 
+     */
+    async getIntersection(prefId: number, areaId: number, intersectionId: string, withDetail: boolean = false): Promise<any> {
+        const data = await this.client.intersection.findMany(this.prismaQueryIntersections(prefId, areaId, intersectionId, withDetail));
+        return data.length === 0 ? {} : (await this.formatIntersection(prefId, areaId, data))[0];
     }
 }
