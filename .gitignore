@@ -62,3 +62,9 @@ prisma/migrations/*
 # ignore directory
 ignore
 ignore/*
+
+# venv directory
+batch/.venv
+
+# batch fact
+batch/*.gif
