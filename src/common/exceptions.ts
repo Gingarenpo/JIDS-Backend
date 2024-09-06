@@ -5,7 +5,7 @@
  * TODO: i18n対応
  */
 
-import { BadRequestException, ForbiddenException, MethodNotAllowedException, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, MethodNotAllowedException, NotFoundException, RequestTimeoutException, UnauthorizedException } from "@nestjs/common";
 
 export function JIDSBadRequest(message?: string|string[]) {
     return new BadRequestException(message ?? "引数が不正です。");
@@ -29,4 +29,8 @@ export function JIDSMethodNotAllowed(message?: string|string[]) {
 
 export function JIDSInternalServerError(message?: string|string[]) {
     return new Error((typeof message === "string" && message != null) ? message: "システムエラーが発生しました。");
+}
+
+export function JIDSRequestTimeOut(message?: string|string[]) {
+    return new RequestTimeoutException((typeof message === "string" && message != null) ? message: "リクエストがタイムアウトしました。");
 }

@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { IntersectionStatus, Prisma, PrismaClient } from '@prisma/client';
 import { glob } from 'glob';
 import { app } from 'src/main';
 
 @Injectable()
 export class DatasService {
     // Prisma Client
-    private client: PrismaClient = new PrismaClient();
+    private client: PrismaClient;
+
+    constructor() {
+        this.client = new PrismaClient({});
+    }
 
 
     //////////////////////////////////////////////////////////
@@ -17,8 +21,19 @@ export class DatasService {
      * PrismaはUnsupportedとして、GEOMETRY型を扱うことができないので、
      * 指定したWHERE文で緯度経度だけを返す。
      * 存在しない交差点がある可能性があるので、必ずあるかどうかのチェックを行うこと
+     * 
+     * 第4引数に交差点オブジェクト回すとそれでWHERE文作るので少し時短できるかも？（検索用：無理やり）
+     * 
      */
-    async getIntersectionLocations(prefId?: number, areaId?: number, intersectionId?: string): Promise<any> {
+    async getIntersectionLocations(prefId?: number, areaId?: number, intersectionId?: string, intersections?: Array<any>): Promise<any> {
+        let where = null;
+        if (intersections !== undefined) {
+            // 全部繰り返してWHERE文構築
+            where = [];
+            for (const intersection of intersections) {
+                where.push(`("prefId" = ${intersection.prefId} AND "areaId" = ${intersection.areaId} AND id = '${intersection.id}')`);
+            }
+        }
         // クエリを発行
         const query: Array<any> = await this.client.$queryRaw`
             SELECT
@@ -34,12 +49,14 @@ export class DatasService {
                 meta.cities
             ON
                 ST_Contains(geom, location)
-            ${prefId !== undefined || areaId !== undefined || intersectionId !== undefined ? Prisma.sql`WHERE` : Prisma.sql``}
+            ${prefId !== undefined || areaId !== undefined || intersectionId !== undefined || intersections ? Prisma.sql`WHERE` : Prisma.sql``}
             ${prefId ? Prisma.sql`"prefId" = ${Prisma.sql([prefId.toString()])}` : Prisma.sql``}
             ${prefId && areaId ? Prisma.sql`AND` : Prisma.sql``}
             ${areaId ? Prisma.sql`"areaId" = ${Prisma.sql([areaId.toString()])}` : Prisma.sql``}
             ${areaId && intersectionId ? Prisma.sql`AND` : Prisma.sql``}
             ${intersectionId ? Prisma.sql`id = ${Prisma.sql([intersectionId.toString()])}` : Prisma.sql``}
+            ${intersectionId && intersections ? Prisma.sql`AND` : Prisma.sql``}
+            ${where ? Prisma.sql`${Prisma.sql([where.join(' OR ')])}` : Prisma.sql``}
         `;
 
         // [][][]でアクセスできるように整える
@@ -342,14 +359,14 @@ export class DatasService {
     async formatIntersection(prefId: number, areaId: number, intersections: Array<any>): Promise<any> {
         intersections = intersections.sort((a, b) => a.id - b.id);
         const host = await app.getUrl();
-        const locations = await this.getIntersectionLocations(prefId, areaId);
+        const locations = await (prefId == undefined && areaId == undefined ? this.getIntersectionLocations(undefined, undefined, undefined, intersections) : this.getIntersectionLocations(prefId, areaId));
         return await Promise.all(intersections.map(async (intersection) => {
             return {
                 ...intersection,
                 // 灯器コードを整形
                 cars: intersection.cars.map((car) => car.carCode),
                 peds: intersection.peds.length > 0 && intersection.peds[0].pedCode != "-" ? intersection.peds.map((ped) => ped.pedCode) : [],
-                location: locations[prefId][areaId][intersection.id],
+                location: locations[prefId ?? intersection.prefId][areaId ?? intersection.areaId][intersection.id],
                 thumbnail: await this.getThumbnail(prefId, areaId, intersection.id),
 
                 // 現地調査データに関しては存在するものと仮定してURLを自動構築する
@@ -491,5 +508,88 @@ export class DatasService {
     async getIntersection(prefId: number, areaId: number, intersectionId: string, withDetail: boolean = false): Promise<any> {
         const data = await this.client.intersection.findMany(this.prismaQueryIntersections(prefId, areaId, intersectionId, withDetail));
         return data.length === 0 ? {} : (await this.formatIntersection(prefId, areaId, data))[0];
+    }
+
+    /**
+     * 交差点の検索を行う。
+     * 
+     * @param road 所属道路
+     * @param name 交差点名
+     * @param sign 地名板（指定した場合、存在しないものは検索不可能）
+     * @param status 状態
+     * @param comment 備考欄含有検索
+     * @param operationYearStart 運用開始年度
+     * @param operationYearEnd 運用開始年度
+     * @param refreshYearStart 更新年度
+     * @param refreshYearEnd 更新年度
+     * @param decideYearStart 意思決定年度
+     * @param decideYearEnd 意思決定年度
+     * @param rover ルーバーフラグ
+     * @param sound 音響
+     * @param official 公式？
+     * @param thumbnail サムネある？
+     * @param detail 現地調査データある？
+     * @param car 灯器構成
+     * @param ped 灯器構成
+     */
+    async searchIntersection(
+        road?: string,
+        name?: string,
+        sign?: string,
+        status?: string,
+        comment?: string,
+        operationYearStart?: number,
+        operationYearEnd?: number,
+        refreshYearStart?: number,
+        refreshYearEnd?: number,
+        decideYearStart?: number,
+        decideYearEnd?: number,
+        rover?: number,
+        sound?: boolean,
+        official?: boolean,
+        thumbnail?: boolean,
+        detail?: boolean,
+        car?: string[],
+        ped?: string[],
+    ) : Promise<object> {
+        const intersections = await this.client.intersection.findMany({
+            where: {
+                road: road ? {contains: road} : undefined,
+                name: name ? {contains: name}  : {not: null},
+                sign: sign ? {contains: sign} : undefined,
+                status: IntersectionStatus[status],
+                comment: comment ? {contains: comment} : undefined,
+                operationYear: operationYearStart ? {
+                    gte: operationYearStart,
+                    lte: operationYearEnd
+                } : undefined,
+                refreshYear: refreshYearStart ? {
+                    gte: refreshYearStart,
+                    lte: refreshYearEnd
+                } : undefined,
+                decideYear: decideYearStart ? {
+                    gte: decideYearStart,
+                    lte: decideYearEnd
+                } : undefined,
+                rover: rover,
+                sound: sound,
+                isOfficialName: official,
+                
+            },
+            include: {
+                cars: {
+                    select: {
+                        carCode: true,
+                    }
+                },
+                peds: {
+                    select: {
+                        pedCode: true,
+                    }
+                },
+            }
+        });
+
+        return this.formatIntersection(undefined, undefined, intersections);
     }
 }

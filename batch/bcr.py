@@ -122,7 +122,8 @@ df_detail = pd.pivot_table(df_detail, index=["date"], columns=["prefId"]).fillna
 df_detail = df_detail.reset_index()
 df_detail["date"] = pd.to_datetime(df_detail["date"])
 df_detail = df_detail.set_index("date")
+df_detail.columns = [prefs[int(a[1])-1] for a in df_detail.columns]
 
 # バーチャートレース作成
-make(df_thumbnail, "JIDS Thumbnails", "thumbnail.gif")
-make(df_detail, "JIDS Details", "detail.gif")
+make(df_thumbnail, "JIDS Thumbnails", os.path.dirname(__file__) + "/thumbnail.gif")
+make(df_detail, "JIDS Details", os.path.dirname(__file__) + "/detail.gif")

@@ -2,7 +2,7 @@ import { Controller, Get, Param, Query } from '@nestjs/common';
 import { DatasService } from './datas.service';
 import { Throttle } from '@nestjs/throttler';
 import { Throttles } from 'src/common/throttle';
-import { JIDSBadRequest, JIDSNotFound } from 'src/common/exceptions';
+import { JIDSBadRequest, JIDSInternalServerError, JIDSNotFound, JIDSRequestTimeOut } from 'src/common/exceptions';
 
 // サブディレクトリに分けるがDataディレクトリはすでにあるので
 // ルートからのコントローラーとする
@@ -16,6 +16,96 @@ export class DatasController {
     async getPrefs(@Query("withArea") withArea: boolean = false, @Query("withIntersection") withIntersection: boolean = false): Promise<any> {
         const result = await this.datasService.getPref(undefined, withArea, withIntersection);
         return result;
+    }
+
+    @Get("search")
+    @Throttle({default: Throttles.info_get_many})
+    async searchIntersection(
+        @Query("road") road?: string,
+        @Query("name") name?: string,
+        @Query("sign") sign?: string,
+        @Query("status") status?: string,
+        @Query("comment") comment?: string,
+        @Query("operationYear") operationYear?: string,
+        @Query("refreshYear") refreshYear?: string,
+        @Query("decideYear") decideYear?: string,
+        @Query("rover") rover?: number,
+        @Query("sound") sound?: boolean,
+        @Query("official") official?: boolean,
+        @Query("thumbnail") thumbnail?: boolean,
+        @Query("detail") detail?: boolean,
+        @Query("car") car?: string,
+        @Query("ped") ped?: string,
+    ) {
+        // 検索結果を何も絞らないでたたいた場合、全交差点が出てきてしまい時間ばかりかかるので
+        // その場合強制終了
+        if (Array.from(arguments).filter((x) => x != undefined && x != null).length == 0) {
+            throw JIDSBadRequest("検索条件を指定してください。");
+        }
+
+        // クエリパラメータの整形
+        const cars = car?.split(",").map((x) => x.trim());
+        const peds = ped?.split(",").map((x) => x.trim());
+
+        // Year関連をstartとendに分ける
+        const operationYears = operationYear?.split("～");
+        const refreshYears = refreshYear?.split("～");
+        const decideYears = decideYear?.split("～");
+        // できるだけハードコーディングは避けたいがとりあえず9999年まで継続しているはずがないので…
+        let operationYearStart, operationYearEnd, refreshYearStart, refreshYearEnd, decideYearStart, decideYearEnd;
+        if (operationYears?.length == 1) {
+            operationYearStart = parseInt(operationYears[0]);
+            operationYearEnd = parseInt(operationYears[0]);
+        }
+        else {
+            operationYearStart = operationYears?.[0] ? parseInt(operationYears?.[0]) : 0;
+            operationYearEnd = operationYears?.[1] ? parseInt(operationYears?.[1]) : 9999;
+        }
+        if (refreshYears?.length == 1) {
+            refreshYearStart = parseInt(refreshYears[0]);
+            refreshYearEnd = parseInt(refreshYears[0]);
+        }
+        else {
+            refreshYearStart = refreshYears?.[0] ? parseInt(refreshYears?.[0]) : 0;
+            refreshYearEnd = refreshYears?.[1] ? parseInt(refreshYears?.[1]) : 9999;
+        }
+        if (decideYears?.length == 1) {
+            decideYearStart = parseInt(decideYears[0]);
+            decideYearEnd = parseInt(decideYears[0]);
+        }
+        else {
+            decideYearStart = decideYears?.[0] ? parseInt(decideYears?.[0]) : 0;
+            decideYearEnd = decideYears?.[1] ? parseInt(decideYears?.[1]) : 9999;
+        }
+
+        // クエリを発行
+        const intersections = await Promise.race([
+            this.datasService.searchIntersection(
+                road,
+                name,
+                sign,
+                status,
+                comment,
+                operationYearStart,
+                operationYearEnd,
+                refreshYearStart,
+                refreshYearEnd,
+                decideYearStart,
+                decideYearEnd,
+                rover,
+                sound,
+                official,
+                thumbnail,
+                detail,
+                cars,
+                peds
+            ),
+            new Promise((resolve) => setTimeout(() => resolve(null), 10000)),
+        ]);
+        if (intersections == null) {
+            throw JIDSRequestTimeOut("検索結果が多すぎます。リクエストがタイムアウトしました。");
+        }
+        return intersections;
     }
 
     /**
