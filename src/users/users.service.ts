@@ -3,11 +3,13 @@ import { User } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
 import { createHash } from 'crypto';
 import { JIDSBadRequest, JIDSInternalServerError } from 'src/common/exceptions';
+import internal from 'stream';
 
 // インターフェースとして、JWTトークンのペイロードを定義する
 export interface JwtPayload {
     user_id: String,
     user_name: String,
+    user_rank: number,
 }
 
 @Injectable()
@@ -31,6 +33,18 @@ export class UsersService {
         });
     }
 
+    // ログインデータ更新
+    async loginUser(user: User): Promise<User> {
+        return await this.dbClient.user.update({
+            where: {
+                id: user.id
+            },
+            data: {
+                loginDate: new Date(),
+            }
+        });
+    }
+
     // ユーザーを作成
     async createUser(id: string, name: string, address: string, password: string): Promise<User> {
         // 各種バリデーションチェックを行う
@@ -50,9 +64,6 @@ export class UsersService {
         if (errors.length > 0) {
             throw JIDSBadRequest(errors);
         }
-
-        const a = this.findUser(id);
-        (await a).rankId;
 
         // ユーザーを作成する
         return await this.dbClient.user.create({

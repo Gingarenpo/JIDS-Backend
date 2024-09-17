@@ -23,7 +23,8 @@ export class AuthService {
         // ペイロードを取得
         const payload: JwtPayload = {
             user_id: user.id,
-            user_name: user.name
+            user_name: user.name,
+            user_rank: user.rankId,
         };
 
         return {

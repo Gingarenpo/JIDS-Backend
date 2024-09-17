@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Req } from '@nestjs/common';
 import { IntersectionStatus, Prisma, PrismaClient } from '@prisma/client';
 import { glob } from 'glob';
 import { app } from 'src/main';
@@ -9,7 +9,7 @@ export class DatasService {
     private client: PrismaClient;
 
     constructor() {
-        this.client = new PrismaClient({});
+        this.client = new PrismaClient();
     }
 
 
@@ -33,6 +33,7 @@ export class DatasService {
             for (const intersection of intersections) {
                 where.push(`("prefId" = ${intersection.prefId} AND "areaId" = ${intersection.areaId} AND id = '${intersection.id}')`);
             }
+
         }
         // クエリを発行
         const query: Array<any> = await this.client.$queryRaw`
@@ -118,10 +119,15 @@ export class DatasService {
      * @param prefId 都道府県ID。指定しないと全都道府県の全データから取得します。
      * @param areaId エリアID。指定しないと全都道府県の全交差点から取得します。
      * @param intersectionId 交差点ID。指定しないと全エリアの全交差点から取得します。
+     * @param existCheck 交差点の存在を確認するかどうか
      */
-    async getThumbnail(prefId?: number, areaId?: number, intersectionId?: string): Promise<any> {
+    async getThumbnail(prefId?: number, areaId?: number, intersectionId?: string, existCheck: boolean = true): Promise<any> {
         // ホストを取得
         const host = await app.getUrl();
+        if (!existCheck) {
+            // 存在チェックをスキップする場合はサムネのURLを「こうである」と仮定して返す
+            return `${host}${process.env.DATA_PREFIX}${prefId}/${areaId}/${intersectionId}.JPG`;
+        }
         // パスを作成
         const path = `${process.env.DATA_DIR}${prefId ? prefId : '*'}/${areaId ? areaId : '*'}/${intersectionId ? intersectionId + ".JPG" : '*.JPG'}`;
         const imgs = (await glob(path)).map(path => host + process.env.DATA_PREFIX + path.replace(process.env.DATA_DIR, ''));
@@ -356,8 +362,12 @@ export class DatasService {
      * @param intersections 交差点オブジェクト
      * @returns 整形した交差点オブジェクト
      */
-    async formatIntersection(prefId: number, areaId: number, intersections: Array<any>): Promise<any> {
-        intersections = intersections.sort((a, b) => a.id - b.id);
+    async formatIntersection(prefId: number, areaId: number, intersections: Array<any>, existCheck: boolean = false): Promise<any> {
+        intersections = intersections.sort((a, b) => {
+            if (a.prefId != b.prefId) return a.prefId - b.prefId;
+            if (a.areaId != b.areaId) return a.areaId - b.areaId;
+            return a.id - b.id;
+        });
         const host = await app.getUrl();
         const locations = await (prefId == undefined && areaId == undefined ? this.getIntersectionLocations(undefined, undefined, undefined, intersections) : this.getIntersectionLocations(prefId, areaId));
         return await Promise.all(intersections.map(async (intersection) => {
@@ -367,7 +377,7 @@ export class DatasService {
                 cars: intersection.cars.map((car) => car.carCode),
                 peds: intersection.peds.length > 0 && intersection.peds[0].pedCode != "-" ? intersection.peds.map((ped) => ped.pedCode) : [],
                 location: locations[prefId ?? intersection.prefId][areaId ?? intersection.areaId][intersection.id],
-                thumbnail: await this.getThumbnail(prefId, areaId, intersection.id),
+                thumbnail: await this.getThumbnail(prefId != undefined ? prefId : intersection.prefId, areaId != undefined ? areaId : intersection.areaId, intersection.id, existCheck), // チェックしないことで重すぎを防止
 
                 // 現地調査データに関しては存在するものと仮定してURLを自動構築する
                 details: intersection.details !== undefined ? intersection.details.map((detail) => {
@@ -531,6 +541,7 @@ export class DatasService {
      * @param detail 現地調査データある？
      * @param car 灯器構成
      * @param ped 灯器構成
+     * @param existCheck trueにすると、サムネイルの存在チェックを行うため非常に遅くなる
      */
     async searchIntersection(
         road?: string,
@@ -551,6 +562,7 @@ export class DatasService {
         detail?: boolean,
         car?: string[],
         ped?: string[],
+        existCheck: boolean = false,
     ) : Promise<object> {
         const intersections = await this.client.intersection.findMany({
             where: {
@@ -574,6 +586,20 @@ export class DatasService {
                 rover: rover,
                 sound: sound,
                 isOfficialName: official,
+                cars: {
+                    some: {
+                        carCode: {
+                            in: car
+                        }
+                    }
+                },
+                peds: {
+                    some: {
+                        pedCode: {
+                            in: ped
+                        }
+                    }
+                }
                 
             },
             include: {
@@ -587,9 +613,28 @@ export class DatasService {
                         pedCode: true,
                     }
                 },
-            }
+            },
+            orderBy: [
+                {
+                    prefId: "asc"
+                },
+                {
+                    areaId: "asc"
+                },
+                {
+                    id: "asc"
+                }
+            ]
         });
 
-        return this.formatIntersection(undefined, undefined, intersections);
+        if (intersections.length >= (existCheck ? 1000 : 10000)) {
+            // 多すぎるのでエラーを返す
+            return {error: "検索結果が多すぎます。", count: intersections.length};
+        }
+        else if (intersections.length === 0) {
+            return [];
+        }
+
+        return this.formatIntersection(undefined, undefined, intersections, existCheck);
     }
 }

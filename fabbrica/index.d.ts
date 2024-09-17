@@ -574,6 +574,7 @@ type DetailPictureFactoryDefineInput = {
     subNumber?: number | null;
     plate?: boolean;
     comment?: string | null;
+    result?: boolean;
     detail: DetailPicturedetailFactory | Prisma.DetailCreateNestedOneWithoutPicturesInput;
 };
 type DetailPictureTransientFields = Record<string, unknown> & Partial<Record<keyof DetailPictureFactoryDefineInput, never>>;

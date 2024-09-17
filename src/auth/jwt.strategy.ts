@@ -20,6 +20,6 @@ export class JwtStrategy extends PassportStrategy(BaseJwtStrategy) {
 
     // ペイロードを使用したバリデーションチェック
     async validate(payload: JwtPayload): Promise<JwtPayload> {
-        return { user_id: payload.user_id, user_name: payload.user_name };
+        return { user_id: payload.user_id, user_name: payload.user_name, user_rank: payload.user_rank };
     }
 }

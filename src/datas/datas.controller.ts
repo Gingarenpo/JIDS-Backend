@@ -1,8 +1,9 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
 import { DatasService } from './datas.service';
 import { Throttle } from '@nestjs/throttler';
 import { Throttles } from 'src/common/throttle';
 import { JIDSBadRequest, JIDSInternalServerError, JIDSNotFound, JIDSRequestTimeOut } from 'src/common/exceptions';
+import { AuthGuard } from 'src/auth/auth.guard';
 
 // サブディレクトリに分けるがDataディレクトリはすでにあるので
 // ルートからのコントローラーとする
@@ -21,6 +22,7 @@ export class DatasController {
     @Get("search")
     @Throttle({default: Throttles.info_get_many})
     async searchIntersection(
+        @Res() response,
         @Query("road") road?: string,
         @Query("name") name?: string,
         @Query("sign") sign?: string,
@@ -79,7 +81,7 @@ export class DatasController {
         }
 
         // クエリを発行
-        const intersections = await Promise.race([
+        const intersections: any = await Promise.race([
             this.datasService.searchIntersection(
                 road,
                 name,
@@ -105,7 +107,13 @@ export class DatasController {
         if (intersections == null) {
             throw JIDSRequestTimeOut("検索結果が多すぎます。リクエストがタイムアウトしました。");
         }
-        return intersections;
+        if ("error" in intersections) {
+            response.status(400).send(intersections);
+        }
+        if (intersections.length == 0) {
+            return response.status(200).send([]);
+        }
+        return response.status(200).send(intersections);
     }
 
     /**

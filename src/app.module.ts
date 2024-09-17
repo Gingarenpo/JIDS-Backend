@@ -2,11 +2,13 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { MetasModule } from './metas/metas.module';
 import { DatasModule } from './datas/datas.module';
 import { StaticModule } from './static/static.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { UploadModule } from './upload/upload.module';
+import { JIDSthrottleGuard } from './common/JIDSthrottle.guard';
 
 @Module({
   imports: [
@@ -16,6 +18,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     AuthModule,
     UsersModule,
     StaticModule,
+    UploadModule,
     ThrottlerModule.forRoot([{
       ttl: 60 * 60 * 24,
       limit: 10,
@@ -26,6 +29,10 @@ import { ScheduleModule } from '@nestjs/schedule';
   ],
   controllers: [],
   providers: [
+    {
+      provide: 'APP_GUARD',
+      useClass: JIDSthrottleGuard
+    }
   ],
 })
 export class AppModule {}

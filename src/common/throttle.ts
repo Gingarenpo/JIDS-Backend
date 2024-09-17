@@ -11,6 +11,11 @@ export const Throttles = {
         limit: 10,
         ttl: 60 * 60 * 24
     },
+    // ログイン系
+    login: {
+        limit: 5,
+        ttl: 60 * 60 * 24,
+    },
     // 情報取得系
     info_get: {
         limit: 100,

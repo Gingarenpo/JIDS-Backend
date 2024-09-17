@@ -7,12 +7,14 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './jwt.strategy';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
     UsersModule,
     PassportModule,
     ConfigModule,
+    ThrottlerModule,
 
     // JWTトークンの遅延読み込み
     JwtModule.registerAsync({

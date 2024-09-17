@@ -12,8 +12,15 @@ export class AuthGuard implements CanActivate {
   async canActivate(
     context: ExecutionContext,
   ): Promise<boolean> {
-    // リクエストからトークンを取得
+    // localhostのアクセスの場合は容認
     const request = context.switchToHttp().getRequest();
+    /*if (request.ip == "127.0.0.1") {
+      request.user = await this.usersService.findUser("Gingarenpo"); // TODO: ここどうにかする（開発者用アカウント作る？）
+      return true;
+    }*/
+
+    // リクエストからトークンを取得
+
     const token = this.extractTokenFromHeader(request);
     
     // トークンを検証

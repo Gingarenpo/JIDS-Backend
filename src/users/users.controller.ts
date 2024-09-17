@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JIDSBadRequest, JIDSMethodNotAllowed } from 'src/common/exceptions';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
@@ -29,6 +29,7 @@ export class UsersController {
     async createUser(@Body("id") id?, @Body("name") name?, @Body("address") address?, @Body("password") password?) {
         if (id == null || name == null || address == null || password == null) {
             // 必須項目が足りない
+            console.log(id, name, address, password);
             throw JIDSBadRequest();
         }
 
