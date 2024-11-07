@@ -18,7 +18,7 @@ generator fabbrica {
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
-  schemas    = ["core", "data", "info"]
+  schemas    = ["core", "info"]
   extensions = [postgis]
 }
 
@@ -219,6 +219,9 @@ model Intersection {
   thumbnails Thumbnail[]
   details Detail[]
 
+  // その他外部リレーション
+  bids Bid[] // 入札情報
+
   @@id([prefId, areaId, id])
   @@unique([prefId, areaId, id])
   @@map("intersection")
@@ -337,4 +340,48 @@ model DetailPicture {
   @@id([id, detailId])
   @@map("detail_picture")
   @@schema("info")
+}
+
+// 入札情報系ENUM
+enum BidStatus {
+  REFRESH // 更新
+  PLACE // 設置（新設、増設）
+  GONE // 廃止（撤去）
+  OTHER // その他
+
+  @@schema("info")
+}
+
+
+// 入札情報
+// すでに登録されている交差点とリレーションして紐づける
+model Bid {
+
+  prefId Int
+  areaId Int
+  intersectionId String
+
+  // 交差点リレーション
+  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id])
+
+  // 主キー系
+  year Int // YYYY
+  id Int // 入札番号（あくまで管理用、都道府県によりまちまち）
+
+  // 更新系（ENUM）
+  car BidStatus?
+  ped BidStatus?
+  controller BidStatus?
+  sensor BidStatus?
+  sound BidStatus?
+  button BidStatus?
+  pole BidStatus?
+  other BidStatus?
+
+  // コメント
+  comment String?
+
+  @@schema("info")
+  @@map("bid")
+  @@id([prefId, areaId, intersectionId, year])
 }

@@ -21,7 +21,14 @@ async function bootstrap() {
   // APIドキュメントを一応生成しておく
   const options = new DocumentBuilder()
     .setTitle("JIDS API Documents")
-    .setDescription("自動生成されたJIDS APIドキュメントです。ソースメンテに伴いなるべくメタ情報は更新していますが、足りなかったり現状にそぐわなかったりするので最新の情報は直接ソースコードを見ていただくか実際に実行してもらうのが一番手っ取り早いです。")
+    .setDescription(
+      "自動生成されたJIDS APIドキュメントです。\
+      ソースメンテに伴いなるべくメタ情報は更新していますが、\
+      足りなかったり現状にそぐわなかったりするので\
+      最新の情報は直接ソースコードを見ていただくか実際に実行してもらうのが一番手っ取り早いです。\
+      <br>\
+      一応試せるようになっているようですがフィールドの設定を何もしていないので全部のフィールドがRequiredとかになっています。"
+    )
     .setVersion("1.0")
     .build();
   const document = SwaggerModule.createDocument(app, options);

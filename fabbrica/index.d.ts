@@ -11,10 +11,12 @@ import type { Queue } from "@prisma/client";
 import type { Thumbnail } from "@prisma/client";
 import type { Detail } from "@prisma/client";
 import type { DetailPicture } from "@prisma/client";
+import type { Bid } from "@prisma/client";
 import type { PrefManageType } from "@prisma/client";
 import type { IntersectionStatus } from "@prisma/client";
 import type { DetailType } from "@prisma/client";
 import type { DetailLight } from "@prisma/client";
+import type { BidStatus } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import type { Resolver } from "@quramy/prisma-fabbrica/lib/internal";
 export { resetSequence, registerScalarFieldValueGenerator, resetScalarFieldValueGenerator } from "@quramy/prisma-fabbrica/lib/internal";
@@ -390,6 +392,7 @@ type IntersectionFactoryDefineInput = {
     child?: Prisma.IntersectionCreateNestedManyWithoutParentInput;
     thumbnails?: Prisma.ThumbnailCreateNestedManyWithoutIntersectionInput;
     details?: Prisma.DetailCreateNestedManyWithoutIntersectionInput;
+    bids?: Prisma.BidCreateNestedManyWithoutIntersectionInput;
 };
 type IntersectionTransientFields = Record<string, unknown> & Partial<Record<keyof IntersectionFactoryDefineInput, never>>;
 type IntersectionFactoryTrait<TTransients extends Record<string, unknown>> = {
@@ -608,3 +611,52 @@ interface DetailPictureFactoryBuilder {
     withTransientFields: <TTransients extends DetailPictureTransientFields>(defaultTransientFieldValues: TTransients) => <TOptions extends DetailPictureFactoryDefineOptions<TTransients>>(options: TOptions) => DetailPictureFactoryInterface<TTransients, DetailPictureTraitKeys<TOptions>>;
 }
 export declare const defineDetailPictureFactory: DetailPictureFactoryBuilder;
+type BidintersectionFactory = {
+    _factoryFor: "Intersection";
+    build: () => PromiseLike<Prisma.IntersectionCreateNestedOneWithoutBidsInput["create"]>;
+};
+type BidFactoryDefineInput = {
+    year?: number;
+    id?: number;
+    car?: BidStatus | null;
+    ped?: BidStatus | null;
+    controller?: BidStatus | null;
+    sensor?: BidStatus | null;
+    sound?: BidStatus | null;
+    button?: BidStatus | null;
+    pole?: BidStatus | null;
+    other?: BidStatus | null;
+    comment?: string | null;
+    intersection: BidintersectionFactory | Prisma.IntersectionCreateNestedOneWithoutBidsInput;
+};
+type BidTransientFields = Record<string, unknown> & Partial<Record<keyof BidFactoryDefineInput, never>>;
+type BidFactoryTrait<TTransients extends Record<string, unknown>> = {
+    data?: Resolver<Partial<BidFactoryDefineInput>, BuildDataOptions<TTransients>>;
+} & CallbackDefineOptions<Bid, Prisma.BidCreateInput, TTransients>;
+type BidFactoryDefineOptions<TTransients extends Record<string, unknown> = Record<string, unknown>> = {
+    defaultData: Resolver<BidFactoryDefineInput, BuildDataOptions<TTransients>>;
+    traits?: {
+        [traitName: string | symbol]: BidFactoryTrait<TTransients>;
+    };
+} & CallbackDefineOptions<Bid, Prisma.BidCreateInput, TTransients>;
+type BidTraitKeys<TOptions extends BidFactoryDefineOptions<any>> = Exclude<keyof TOptions["traits"], number>;
+export interface BidFactoryInterfaceWithoutTraits<TTransients extends Record<string, unknown>> {
+    readonly _factoryFor: "Bid";
+    build(inputData?: Partial<Prisma.BidCreateInput & TTransients>): PromiseLike<Prisma.BidCreateInput>;
+    buildCreateInput(inputData?: Partial<Prisma.BidCreateInput & TTransients>): PromiseLike<Prisma.BidCreateInput>;
+    buildList(list: readonly Partial<Prisma.BidCreateInput & TTransients>[]): PromiseLike<Prisma.BidCreateInput[]>;
+    buildList(count: number, item?: Partial<Prisma.BidCreateInput & TTransients>): PromiseLike<Prisma.BidCreateInput[]>;
+    pickForConnect(inputData: Bid): Pick<Bid, "prefId" | "areaId" | "intersectionId" | "year">;
+    create(inputData?: Partial<Prisma.BidCreateInput & TTransients>): PromiseLike<Bid>;
+    createList(list: readonly Partial<Prisma.BidCreateInput & TTransients>[]): PromiseLike<Bid[]>;
+    createList(count: number, item?: Partial<Prisma.BidCreateInput & TTransients>): PromiseLike<Bid[]>;
+    createForConnect(inputData?: Partial<Prisma.BidCreateInput & TTransients>): PromiseLike<Pick<Bid, "prefId" | "areaId" | "intersectionId" | "year">>;
+}
+export interface BidFactoryInterface<TTransients extends Record<string, unknown> = Record<string, unknown>, TTraitName extends TraitName = TraitName> extends BidFactoryInterfaceWithoutTraits<TTransients> {
+    use(name: TTraitName, ...names: readonly TTraitName[]): BidFactoryInterfaceWithoutTraits<TTransients>;
+}
+interface BidFactoryBuilder {
+    <TOptions extends BidFactoryDefineOptions>(options: TOptions): BidFactoryInterface<{}, BidTraitKeys<TOptions>>;
+    withTransientFields: <TTransients extends BidTransientFields>(defaultTransientFieldValues: TTransients) => <TOptions extends BidFactoryDefineOptions<TTransients>>(options: TOptions) => BidFactoryInterface<TTransients, BidTraitKeys<TOptions>>;
+}
+export declare const defineBidFactory: BidFactoryBuilder;

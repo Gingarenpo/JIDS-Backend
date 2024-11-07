@@ -3,6 +3,7 @@ import { DetailLight, PrismaClient } from '@prisma/client';
 import { JIDSBadRequest } from 'src/common/exceptions';
 import { logger } from 'src/logger';
 import { randomBytes } from 'crypto';
+import path from 'path';
 
 
 @Injectable()
@@ -130,9 +131,12 @@ export class UploadService {
 
     /**
      * 確保した現地調査データにおいて、キチンとフォーマットが一致しているかを確かめる
+     * @param zip ZIPファイル
      * @param entries 分割したZipファイルのエントリー
+     * @param validPaths 事前にチェックしたZipエントリー
      */
-    private checkEntries(entries) {
+    private checkEntries(entries, validPaths) {
+        logger.debug("現地調査のフォーマット検査を開始");
         // 現地調査のセットがそろっているかどうか
         for (const prefId of Object.keys(entries.detail)) {
             for (const areaId of Object.keys(entries.detail[prefId])) {
@@ -141,15 +145,40 @@ export class UploadService {
                         const memo = entries.detail[prefId][areaId][intersectionId][date].find(e => e.baseName.endsWith("memo.txt"));
                         if (memo === undefined) {
                             // 必須となるmemo.txtが存在しないので除外
-                            entries.ignore = entries.ignore.concat(entries.detail[prefId][areaId][intersectionId][date].map(e => {return {path: e.path, reason: "現地調査データに必須であるmemo.txtが不足しているため、登録されません。"}}));
+                            logger.debug("MEMO.TXTが存在しない -> " + prefId + "/" + areaId + "/" + intersectionId + "/" + date);
+                            entries.ignore = entries.ignore.concat(entries.detail[prefId][areaId][intersectionId][date].map(e => {return {path: e.path.entryName, reason: "現地調査データに必須であるmemo.txtが不足しているため、登録されません。"}}));
                             delete entries.detail[prefId][areaId][intersectionId][date];
+
+                            // validPathsから該当する交差点情報全削除（展開しない）
+                            validPaths = validPaths.filter(e => !e.startsWith(prefId + "/" + areaId + "/" + intersectionId + "/" + date));
+                            continue;
+                        }
+
+                        // JPGの場合、それが有効なJPGファイルであるかどうか確認（壊れているかどうかのチェックは行えない）
+                        const jpgs = entries.detail[prefId][areaId][intersectionId][date].filter(e => e.baseName.endsWith("JPG"));
+                        for (let i in jpgs) {
+                            const jpg = jpgs[i];
+                            const tmp = jpg.path.getData(); // データ取得
+                            if (tmp[0] != 0xff || tmp[1] != 0xd8) {
+                                // JPGではない、少なくとも
+                                logger.debug("JPGではない -> " + jpg.path.entryName);
+                                entries.ignore = entries.ignore.concat({
+                                    path: jpg.path.entryName,
+                                    reason: "JPGファイルとして有効な形式になっていません。",
+                                })
+                                // エントリーから削除
+                                entries.detail[prefId][areaId][intersectionId][date] = entries.detail[prefId][areaId][intersectionId][date].filter(e => e != jpg);
+
+                                // validPathsからも削除
+                                validPaths = validPaths.filter(e => e != jpg.path.entryName);
+                            }
                         }
                     }
                 }
             }   
         }
         
-        return entries;
+        return { entries, validPaths };
     }
 
     /**
@@ -163,6 +192,7 @@ export class UploadService {
             logger.debug("キューの登録を開始");
             // キューIDをランダムで取得（random16byte）
             const queueId = randomBytes(16).toString("hex");
+            logger.debug("キューID:" + queueId);
             
             // キューを登録
             queue = await client.queue.create({
@@ -309,7 +339,6 @@ export class UploadService {
             // エントリーとしてまとめた配列を使用する（もっと効率いいやり方あれば教えてください…）
             logger.debug("ファイルのコピーを開始…");
             await this.fs.promises.mkdir(process.env.TMP_DIR + queueId, {recursive: true});
-
             for (const entry of validPaths) {
                 try {
                     zip.extractEntryTo(entry, process.env.TMP_DIR + queueId, true, true);
@@ -344,8 +373,10 @@ export class UploadService {
 
         // 登録可能なエントリーを取得
 
-        const {result, validPaths} = this.getEntries(zip);
-        const entries = this.checkEntries(result);
+        let {result, validPaths} = this.getEntries(zip);
+        let tmp = this.checkEntries(result, validPaths);
+        const entries = tmp.entries;
+        validPaths = tmp.validPaths;
 
         if (Object.keys(entries.thumbnail).length == 0 && Object.keys(entries.detail).length == 0) {
             return {

@@ -82,17 +82,19 @@ export class UsersService {
     }
 
     async updateUser(user, name?: string, address?: string, password?: string): Promise<User> {
-        if (user == null) {
-            throw JIDSInternalServerError();
+        // 各種バリデーションチェックを行う
+        const errors = [];
+        if (name && this.checkName(name) === false) {
+            errors.push("この名前は使用できません。");
         }
-        if (name != null && this.checkName(name) === false) {
-            throw JIDSBadRequest("名前の形式に誤りがあります。");
+        if (address && this.checkAddress(address) === false) {
+            errors.push("不正な連絡先です。");
         }
-        if (address != null && this.checkAddress(address) === false) {
-            throw JIDSBadRequest("連絡先の形式に誤りがあります。");
+        if (password && this.checkPassword(password) === false) {
+            errors.push("パスワードは8文字以上の半角英数字記号で、英字と数字を1文字以上含む必要があります。");
         }
-        if (password != null && this.checkPassword(password) === false) {
-            throw JIDSBadRequest("パスワードの形式に誤りがあります。");
+        if (errors.length > 0) {
+            throw JIDSBadRequest(errors);
         }
 
         const newUser = this.dbClient.user.update({
@@ -107,6 +109,19 @@ export class UsersService {
         });
 
         return await newUser;
+    }
+
+
+    // ユーザーのキュー一覧を取得
+    async findQueues(user: User): Promise<any> {
+        return await this.dbClient.queue.findMany({
+            where: {
+                userId: user.id
+            },
+            orderBy: {
+                createDate: "desc",
+            }
+        });
     }
 
     // パスワードをハッシュを用いて作成
@@ -172,7 +187,7 @@ export class UsersService {
     // バリデーションチェック：パスワード
     checkPassword(password: string): boolean {
         // 要件1: 8文字以上の半角英数字記号、かつ英字と数字を1文字以上
-        if (password.length < 8 || ( /^(?=[0-9])[0-9a-zA-Z!#$%&'*+\-/=?^_`{|]+$/.test(password) === false && /^(?=[a-zA-Z])[0-9a-zA-Z!#$%&'*+\-/=?^_`{|]+$/.test(password) === false )) {
+        if (password.length < 8 ||  /^(?=.*[0-9])(?=.*[a-zA-Z])[0-9a-zA-Z!#$%&'*+\-/=?^_`{|]+$/.test(password) === false) {
             return false;
         }
         
