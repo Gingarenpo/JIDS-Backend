@@ -4,6 +4,7 @@ import { Throttle } from '@nestjs/throttler';
 import { Throttles } from 'src/common/throttle';
 import { JIDSBadRequest, JIDSInternalServerError, JIDSNotFound, JIDSRequestTimeOut } from 'src/common/exceptions';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 // サブディレクトリに分けるがDataディレクトリはすでにあるので
 // ルートからのコントローラーとする
@@ -12,7 +13,11 @@ export class DatasController {
     // 
     constructor(private datasService: DatasService) { }
 
+    // デフォルトキーになってしまうので、そもそもパラメーターがない場合は404にする
     @Get("")
+    @ApiOperation({summary: "都道府県情報を取得"})
+    @ApiResponse({status: 200, description: "都道府県情報を返却"})
+    @ApiTags("都道府県")
     @Throttle({default: Throttles.info_get})
     async getPrefs(@Query("withArea") withArea: boolean = false, @Query("withIntersection") withIntersection: boolean = false): Promise<any> {
         const result = await this.datasService.getPref(undefined, withArea, withIntersection);
@@ -20,6 +25,9 @@ export class DatasController {
     }
 
     @Get("search")
+    @ApiTags("交差点")
+    @ApiOperation({summary: "交差点を検索"})
+    @ApiResponse({status: 200, description: "検索結果の交差点情報を返却"})
     @Throttle({default: Throttles.info_get_many})
     async searchIntersection(
         @Res() response,
@@ -122,6 +130,9 @@ export class DatasController {
      * @returns 
      */
     @Get(":prefId")
+    @ApiTags("都道府県")
+    @ApiOperation({summary: "指定した都道府県情報を取得"})
+    @ApiResponse({status: 200, description: "該当する都道府県情報を返却"})
     @Throttle({default: Throttles.info_get})
     async getPref(
         @Param("prefId") prefId,
@@ -148,6 +159,9 @@ export class DatasController {
      * @param withDetail 現地調査データを含めるかどうか
      */
     @Get(":prefId/:areaId")
+    @ApiTags("エリア")
+    @ApiOperation({summary: "指定したエリア情報を取得"})
+    @ApiResponse({status: 200, description: "該当するエリア情報を返却"})
     @Throttle({default: Throttles.info_get})
     async getArea(
         @Param("prefId") prefId,
@@ -164,6 +178,9 @@ export class DatasController {
 
     @Get(":prefId/:areaId/:intersectionId")
     @Throttle({default: Throttles.info_get})
+    @ApiTags("交差点")
+    @ApiOperation({summary: "指定した交差点情報を取得"})
+    @ApiResponse({status: 200, description: "該当する交差点情報を返却"})
     async getIntersection(
         @Param("prefId") prefId,
         @Param("areaId") areaId,

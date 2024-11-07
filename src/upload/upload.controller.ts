@@ -5,6 +5,7 @@ import { Throttles } from 'src/common/throttle';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JIDSBadRequest } from 'src/common/exceptions';
 import { AuthGuard } from 'src/auth/auth.guard';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @Controller('upload')
 export class UploadController {
@@ -19,6 +20,9 @@ export class UploadController {
     @Post("/")
     @Throttle({default: Throttles.info_post})
     @UseInterceptors(FileInterceptor("file"))
+    @ApiTags("情報提供")
+    @ApiOperation({ summary: "キュー登録するためのZipファイルをアップロードする" })
+    @ApiResponse({ status: 200, description: "アップロードされ登録されたキューの情報" })
     @UseGuards(AuthGuard)
     async uploadZip(@Req() request, @UploadedFile() file: Express.Multer.File, @Param("comment") comment:string) {
         if (file === undefined) {
