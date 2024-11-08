@@ -2,7 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { app } from 'src/main';
 import { MetasService } from './metas.service';
 import { execSync } from 'child_process';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiExcludeEndpoint, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @Controller('metas')
 export class MetasController {
@@ -28,5 +28,11 @@ export class MetasController {
             pictureCount: parseInt(stdout), // 画像枚数
             ...d[0],
         };
+    }
+
+    @Get("endpoints")
+    @ApiExcludeEndpoint()
+    async getAllEndpoints() {
+        return this.metasService.getAllEndpoints();
     }
 }

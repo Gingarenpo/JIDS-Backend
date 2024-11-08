@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
+import { QueuesService } from 'src/queues/queues.service';
 import { JIDSBadRequest, JIDSMethodNotAllowed } from 'src/common/exceptions';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { Throttles } from 'src/common/throttle';
@@ -10,7 +11,7 @@ import { ApiExcludeEndpoint, ApiOperation, ApiResponse, ApiTags } from '@nestjs/
 @Controller('users')
 export class UsersController {
     // ユーザーアカウント周りのAPI操作
-    constructor(private usersService: UsersService) {}
+    constructor(private usersService: UsersService, private queuesService: QueuesService) {}
 
     // POST系のエンドポイントにGETでアクセスしてきた場合は拒否
     @Get("create")
@@ -71,7 +72,7 @@ export class UsersController {
     @ApiResponse({status: 200, description: "自分自身が送ったキュー一覧を返却"})
     async getMeQueues(@Req() request) {
         // AuthGuardによって自動的にuserオブジェクトは存在する
-        return this.usersService.findQueues(request.user);
+        return this.queuesService.findQueues(request.user);
     }
 
     // 自分自身のユーザー情報を変更（※idの変更はできません！）

@@ -112,18 +112,6 @@ export class UsersService {
     }
 
 
-    // ユーザーのキュー一覧を取得
-    async findQueues(user: User): Promise<any> {
-        return await this.dbClient.queue.findMany({
-            where: {
-                userId: user.id
-            },
-            orderBy: {
-                createDate: "desc",
-            }
-        });
-    }
-
     // パスワードをハッシュを用いて作成
     hashPassword(password: string): string {
         // ハッシュパスワードのアルゴリズム

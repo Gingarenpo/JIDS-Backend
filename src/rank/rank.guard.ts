@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { Reflector } from '@nestjs/core';
 import { User } from '@prisma/client';
 import { JIDSUnauthorized } from 'src/common/exceptions';
+import { logger } from 'src/logger';
 
 // ランクをデコレータでもらい、それをもとに判断するのでそれを指定する
 export const Ranks = Reflector.createDecorator<String[]>();
@@ -26,6 +27,7 @@ export class RankGuard implements CanActivate {
     const user = request.user;
     if (!user) {
       // そもそも判断不可能なのでダメ
+      logger.debug("ユーザーが与えられていません");
       throw JIDSUnauthorized();
     }
 
@@ -34,6 +36,7 @@ export class RankGuard implements CanActivate {
       return true;
     }
 
+    logger.debug("ユーザーランクが不一致です");
     return false;
   }
 }

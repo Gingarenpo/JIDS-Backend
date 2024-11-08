@@ -4,6 +4,7 @@ import { UsersService } from 'src/users/users.service';
 import { env } from 'process';
 import { Request } from 'express';
 import { JIDSUnauthorized } from 'src/common/exceptions';
+import { logger } from 'src/logger';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -36,6 +37,7 @@ export class AuthGuard implements CanActivate {
       // ペイロードのユーザーIDを使用してユーザーを取得
       // なおこの時点で絶対に取得できるはず
       const user = await this.usersService.findUser(payload.user_id);
+      logger.debug("ユーザーを格納");
       request.user = user;
     }
     catch {
