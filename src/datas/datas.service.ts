@@ -2,6 +2,7 @@ import { Injectable, Req } from '@nestjs/common';
 import { IntersectionStatus, Prisma, PrismaClient } from '@prisma/client';
 import { glob } from 'glob';
 import { app } from 'src/main';
+import * as fs from 'fs';
 
 @Injectable()
 export class DatasService {
@@ -119,7 +120,7 @@ export class DatasService {
      * @param prefId 都道府県ID。指定しないと全都道府県の全データから取得します。
      * @param areaId エリアID。指定しないと全都道府県の全交差点から取得します。
      * @param intersectionId 交差点ID。指定しないと全エリアの全交差点から取得します。
-     * @param existCheck 交差点の存在を確認するかどうか
+     * @param existCheck 交差点の存在を確認するかどうか（交差点単体で指定する場合のみ機能します）
      */
     async getThumbnail(prefId?: number, areaId?: number, intersectionId?: string, existCheck: boolean = true): Promise<any> {
         // ホストを取得
@@ -127,6 +128,13 @@ export class DatasService {
         if (!existCheck) {
             // 存在チェックをスキップする場合はサムネのURLを「こうである」と仮定して返す
             return `${host}${process.env.DATA_PREFIX}${prefId}/${areaId}/${intersectionId}.JPG`;
+        }
+        else if (existCheck && intersectionId) {
+            // 存在チェックのため、パスを確認する
+            const path = `${process.env.DATA_DIR}${prefId}/${areaId}/${intersectionId}.JPG`;
+            if (!fs.existsSync(path)) {
+                return null;
+            }
         }
         // パスを作成
         const path = `${process.env.DATA_DIR}${prefId ? prefId : '*'}/${areaId ? areaId : '*'}/${intersectionId ? intersectionId + ".JPG" : '*.JPG'}`;
@@ -377,7 +385,7 @@ export class DatasService {
                 cars: intersection.cars.map((car) => car.carCode),
                 peds: intersection.peds.length > 0 && intersection.peds[0].pedCode != "-" ? intersection.peds.map((ped) => ped.pedCode) : [],
                 location: locations[prefId ?? intersection.prefId][areaId ?? intersection.areaId][intersection.id],
-                thumbnail: await this.getThumbnail(prefId != undefined ? prefId : intersection.prefId, areaId != undefined ? areaId : intersection.areaId, intersection.id, existCheck), // チェックしないことで重すぎを防止
+                thumbnail: await this.getThumbnail(prefId != undefined ? prefId : intersection.prefId, areaId != undefined ? areaId : intersection.areaId, intersection.id, true), // チェックしないことで重すぎを防止
 
                 // 現地調査データに関しては存在するものと仮定してURLを自動構築する
                 details: intersection.details !== undefined ? intersection.details.map((detail) => {

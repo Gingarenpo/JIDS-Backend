@@ -47,7 +47,7 @@ model User {
   loginDate DateTime? @db.Timestamptz(3) // ログイン日時
 
   // 外部キー関連でくっつくもの
-  rank   Rank    @relation(fields: [rankId], references: [id]) // ユーザーランクインスタンス、これ自体は特にDBに追加されない
+  rank   Rank    @relation(fields: [rankId], references: [id], onDelete: Cascade, onUpdate: Cascade) // ユーザーランクインスタンス、これ自体は特にDBに追加されない
   rankId Int     @default(0) // ランクIDの格納場所
   Queue  Queue[]
 
@@ -79,7 +79,7 @@ model Pref {
 // エリア情報
 model Area {
   prefId       Int // 都道府県コード 
-  pref         Pref           @relation(fields: [prefId], references: [id]) // 属する都道府県コード
+  pref         Pref           @relation(fields: [prefId], references: [id], onDelete: Cascade, onUpdate: Cascade) // 属する都道府県コード
   id           Int // エリアID
   name         String         @db.VarChar(32) // エリア名
   description  String? // エリア領域
@@ -133,10 +133,10 @@ model Ped {
 
 // 車灯コードと交差点をつなぐ中間テーブル
 model CarOfIntersection {
-  car Car @relation(fields: [carCode], references: [code])
+  car Car @relation(fields: [carCode], references: [code], onDelete: Cascade, onUpdate: Cascade)
   carCode String
 
-  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id])
+  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id], onDelete: Cascade, onUpdate: Cascade)
   prefId Int
   areaId Int
   intersectionId String
@@ -150,10 +150,10 @@ model CarOfIntersection {
 
 // 歩灯コードと交差点をつなぐ中間テーブル
 model PedOfIntersection {
-  ped Ped @relation(fields: [pedCode], references: [code])
+  ped Ped @relation(fields: [pedCode], references: [code] , onDelete: Cascade, onUpdate: Cascade)
   pedCode String
 
-  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id])
+  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id], onDelete: Cascade, onUpdate: Cascade)
   prefId Int
   areaId Int
   intersectionId String
@@ -167,20 +167,20 @@ model PedOfIntersection {
 
 // 交差点状態
 enum IntersectionStatus {
-  LIVE
-  GONE
-  MOVE
-  MERGE
-  UNKNOWN
+  LIVE // 現存
+  GONE // 廃止
+  MOVE // 移管
+  MERGE // 統合
+  UNKNOWN // 不明（行方不明に相当）
   @@schema("info")
 }
 
 // 交差点情報
 model Intersection {
   id     String @db.VarChar(8) // アルファベットが含まれるためVarCharとする
-  areaId Int // エリアID（都道府県IDはここに持たなくても連鎖できる
+  areaId Int // エリアID（都道府県IDはここに持たなくても連鎖できる）
   prefId Int // 都道府県ID
-  area   Area   @relation(fields: [areaId, prefId], references: [id, prefId]) // エリア情報
+  area   Area   @relation(fields: [areaId, prefId], references: [id, prefId], onDelete: Cascade, onUpdate: Cascade) // エリア情報
   status IntersectionStatus @default(LIVE)
 
   // 後方互換
@@ -206,7 +206,7 @@ model Intersection {
   sound Boolean @default(false) // 音響装置がついているかどうか
 
   // 親子制御機（※明示的な親子関係が分かる場合を除き、基本的には印字のあるほうを親とする）
-  parent      Intersection?  @relation("controll_family", fields: [childPrefId, childAreaId, childId], references: [prefId, areaId, id]) // 親制御機（ない場合もあります）
+  parent      Intersection?  @relation("controll_family", fields: [childPrefId, childAreaId, childId], references: [prefId, areaId, id], onDelete: Cascade, onUpdate: Cascade) // 親制御機（ない場合もあります）
   childId     String? // 親子制御機用
   childAreaId Int? // 子制御機用
   childPrefId Int?
@@ -231,7 +231,7 @@ model Intersection {
 // キュー情報（ユーザー単位というよりはキューで管理する）
 model Queue {
   id     String @unique @default(uuid())
-  user   User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   userId String
   createDate DateTime @default(now()) @db.Timestamptz(3)
   acceptDate DateTime? @db.Timestamptz(3) // キューの承認日時（してない場合NULL）
@@ -258,9 +258,9 @@ model Thumbnail {
   comment String?
 
   // 外部キーリレーション
-  queue Queue @relation(fields: [queueId], references: [id])
+  queue Queue @relation(fields: [queueId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   queueId String
-  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id])
+  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id], onDelete: Cascade, onUpdate: Cascade)
   prefId Int
   areaId Int
   intersectionId String @db.VarChar(8)
@@ -279,9 +279,9 @@ model Detail {
   memo String? // 撮影メモ（これも入るけど万一を考えてNULL許容）
 
   // 外部キーリレーション
-  queue Queue @relation(fields: [queueId], references: [id])
+  queue Queue @relation(fields: [queueId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   queueId String 
-  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id])
+  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id], onDelete: Cascade, onUpdate: Cascade)
   prefId Int
   areaId Int
   intersectionId String @db.VarChar(8)
@@ -334,7 +334,7 @@ model DetailPicture {
   
 
   // 外部リレーション
-  detail Detail @relation(fields: [detailId], references: [id])
+  detail Detail @relation(fields: [detailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   detailId Int
 
   @@id([id, detailId])
@@ -362,7 +362,7 @@ model Bid {
   intersectionId String
 
   // 交差点リレーション
-  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id])
+  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id], onDelete: Cascade, onUpdate: Cascade)
 
   // 主キー系
   year Int // YYYY

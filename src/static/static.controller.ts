@@ -3,6 +3,7 @@ import { StaticService } from './static.service';
 import { createReadStream } from 'fs';
 import { join } from 'path';
 import { ApiExcludeController, ApiExcludeEndpoint, ApiHideProperty } from '@nestjs/swagger';
+import { DatasService } from 'src/datas/datas.service';
 
 /**
  * 静的ファイルを解決するコントローラー
@@ -13,7 +14,7 @@ import { ApiExcludeController, ApiExcludeEndpoint, ApiHideProperty } from '@nest
 @ApiExcludeController()
 export class StaticController {
 
-  constructor(private staticService: StaticService) { }
+  constructor(private staticService: StaticService, private dataService: DatasService) { }
 
   @Get("thumbnail.gif")
   getBCRThumbnail() {
@@ -25,5 +26,5 @@ export class StaticController {
   getBCRDetail() {
     const file = createReadStream(join(process.cwd(), "batch/detail.gif"));
     return new StreamableFile(file);
-}
+  }
 }

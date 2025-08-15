@@ -104,7 +104,7 @@ export class UsersService {
             data: {
                 name: name ?? user.name,
                 address: address ?? user.address,
-                password: password != null ? this.hashPassword(password) : password
+                password: password != "" ? this.hashPassword(password) : user.password
             }
         });
 

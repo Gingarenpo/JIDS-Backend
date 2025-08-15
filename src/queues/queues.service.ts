@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { User } from '@prisma/client';
+import { JIDSNotFound } from 'src/common/exceptions';
 
 @Injectable()
 export class QueuesService {
@@ -44,5 +45,35 @@ export class QueuesService {
      * ただし、最高管理者とキューの送信アカウントしかその中身を見ることはできない
      */
     async getQueue(queueId: string): Promise<any> {
+        const res = await this.dbClient.queue.findUnique({
+            // MEMO: キューのJSONシリアライズ死ぬ
+            where: {
+                id: queueId
+            },
+            include: {
+                details: {
+                    include: {
+                        pictures: true,
+                        intersection: {
+                            select: {
+                                name: true,
+                            }
+                        }
+                    }
+                },
+                thumbnails: {
+                    include: {
+                        intersection: {
+                            select: {
+                                name: true,
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (res == null) throw JIDSNotFound("指定したキューは存在しません。");
+        return res;
     }
 }

@@ -3,14 +3,12 @@ import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express'
 import { INestApplication } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import * as fs from 'fs';
 
 export let app: NestExpressApplication;
 
 async function bootstrap() {
   app = await NestFactory.create<NestExpressApplication>(AppModule);
-
-  // 静的なAssetsを解釈する
-  app.useStaticAssets(process.env.DATA_DIR, { prefix: process.env.DATA_PREFIX ?? "/Data" });
 
   // X-PoweredByを抹消する
   app.disable('x-powered-by');
@@ -33,6 +31,18 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, options);
   SwaggerModule.setup("docs", app, document);
+
+  // 静的なAssetsを解釈する
+  // ただし一部はControllerを使用しているため、該当する者はそちらを使うように調整する
+  app.use(process.env.DATA_PREFIX ?? "/Data", async (req, res, next) => {
+    // 特定パターンはController優先
+    if (/\/\d+\/\d+\/[^/]+\.JPG$/i.test(req.path)) {
+      return next('route');  // 静的ファイルをスキップしてControllerへ
+    }
+
+    // 存在しない場合はそのまま次のルーティングへ
+    next();
+  })
 
   await app.listen(3000, "0.0.0.0");
 

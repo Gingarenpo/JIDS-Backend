@@ -193,4 +193,18 @@ export class DatasController {
         }
         return result;
     }
+
+    @Get("Data/:prefId/:areaId/:intersectionId.JPG")
+    @Throttle({default: Throttles.info_get})
+    @ApiTags("交差点")
+    @ApiOperation({summary: "指定した交差点のサムネイルを取得"})
+    @ApiResponse({status: 200, description: "あればサムネイルそのもの、なければnull"})
+    async getIntersectionThumbnail(
+        @Param("prefId") prefId,
+        @Param("areaId") areaId,
+        @Param("intersectionId") intersectionId
+    ) {
+        const thumb = await this.datasService.getThumbnail(parseInt(prefId), parseInt(areaId), intersectionId);
+        return thumb;
+    }
 }
