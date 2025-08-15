@@ -5,6 +5,8 @@ import { Throttles } from 'src/common/throttle';
 import { JIDSBadRequest, JIDSInternalServerError, JIDSNotFound, JIDSRequestTimeOut } from 'src/common/exceptions';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import * as fs from 'fs';
+import { Response } from 'express';
 
 // サブディレクトリに分けるがDataディレクトリはすでにあるので
 // ルートからのコントローラーとする
@@ -202,9 +204,17 @@ export class DatasController {
     async getIntersectionThumbnail(
         @Param("prefId") prefId,
         @Param("areaId") areaId,
-        @Param("intersectionId") intersectionId
+        @Param("intersectionId") intersectionId,
+        @Res() res: Response
     ) {
         const thumb = await this.datasService.getThumbnail(parseInt(prefId), parseInt(areaId), intersectionId);
-        return thumb;
+        if (!thumb) {
+            throw JIDSNotFound("サムネイルが見つかりません。");
+        }
+        // ファイルの中身を読み込む
+        const file = fs.readFileSync(`${process.env.DATA_DIR}${prefId}/${areaId}/${intersectionId}.JPG`);
+        
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.send(file);
     }
 }

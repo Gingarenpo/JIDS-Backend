@@ -307,6 +307,11 @@ export class DatasService {
                             select: {
                                 id: true,
                                 userId: true,
+                                user: {
+                                    select: {
+                                        name: true,
+                                    }
+                                }
                             }
                         },
                         pictures: true,
@@ -327,6 +332,11 @@ export class DatasService {
                             select: {
                                 id: true,
                                 userId: true,
+                                user: {
+                                    select: {
+                                        name: true,
+                                    }
+                                }
                             }
                         }
                     },

@@ -4,6 +4,7 @@ import { NestExpressApplication } from '@nestjs/platform-express'
 import { INestApplication } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as fs from 'fs';
+import * as express from 'express';
 
 export let app: NestExpressApplication;
 
@@ -34,7 +35,7 @@ async function bootstrap() {
 
   // 静的なAssetsを解釈する
   // ただし一部はControllerを使用しているため、該当する者はそちらを使うように調整する
-  app.use(process.env.DATA_PREFIX ?? "/Data", async (req, res, next) => {
+  app.use(process.env.DATA_PREFIX ?? "/data", async (req, res, next) => {
     // 特定パターンはController優先
     if (/\/\d+\/\d+\/[^/]+\.JPG$/i.test(req.path)) {
       return next('route');  // 静的ファイルをスキップしてControllerへ
@@ -42,7 +43,8 @@ async function bootstrap() {
 
     // 存在しない場合はそのまま次のルーティングへ
     next();
-  })
+  }, express.static(process.env.DATA_DIR ?? "public"));
+  
 
   await app.listen(3000, "0.0.0.0");
 
