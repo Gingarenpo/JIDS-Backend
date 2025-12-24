@@ -131,7 +131,7 @@ export class DatasController {
      * @param prefId 都道府県ID
      * @returns 
      */
-    @Get(":prefId")
+    @Get(":prefId(\\d+)")
     @ApiTags("都道府県")
     @ApiOperation({summary: "指定した都道府県情報を取得"})
     @ApiResponse({status: 200, description: "該当する都道府県情報を返却"})
@@ -160,7 +160,7 @@ export class DatasController {
      * @param withIntersection 交差点情報を含めるかどうか
      * @param withDetail 現地調査データを含めるかどうか
      */
-    @Get(":prefId/:areaId")
+    @Get(":prefId(\\d+)/:areaId(\\d+)")
     @ApiTags("エリア")
     @ApiOperation({summary: "指定したエリア情報を取得"})
     @ApiResponse({status: 200, description: "該当するエリア情報を返却"})
@@ -178,7 +178,7 @@ export class DatasController {
         return result;
     }
 
-    @Get(":prefId/:areaId/:intersectionId")
+    @Get(":prefId((\\d+))/:areaId((\\d+))/:intersectionId")
     @Throttle({default: Throttles.info_get})
     @ApiTags("交差点")
     @ApiOperation({summary: "指定した交差点情報を取得"})

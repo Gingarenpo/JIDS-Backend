@@ -31,7 +31,6 @@ export class MetasController {
     }
 
     @Get("endpoints")
-    @ApiExcludeEndpoint()
     async getAllEndpoints() {
         return this.metasService.getAllEndpoints();
     }

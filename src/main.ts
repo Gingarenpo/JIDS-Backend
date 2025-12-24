@@ -44,6 +44,16 @@ async function bootstrap() {
     // 存在しない場合はそのまま次のルーティングへ
     next();
   }, express.static(process.env.DATA_DIR ?? "public"));
+
+  app.use(process.env.TMP_PREFIX ?? "/tmp", async (req, res, next) => {
+    // 特定パターンはController優先
+    if (/\/(.+)\/\d+\/\d+\/[^/]+\.JPG$/i.test(req.path)) {
+      return next('route');  // 静的ファイルをスキップしてControllerへ
+    }
+
+    // 存在しない場合はそのまま次のルーティングへ
+    next();
+  }, express.static(process.env.TMP_DIR ?? "public"));
   
 
   await app.listen(3000, "0.0.0.0");

@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { User } from '@prisma/client';
+import { env } from 'process';
 import { JIDSNotFound } from 'src/common/exceptions';
+import { createURLFromFilePath} from 'src/common/helper';
 
 @Injectable()
 export class QueuesService {
@@ -33,6 +35,9 @@ export class QueuesService {
      */
     async findAllQueues(): Promise<any> {
         return this.dbClient.queue.findMany({
+            include: {
+                user: true
+            },
             orderBy: [
                 {createDate: "desc"},
                 {userId: "asc"},
@@ -45,7 +50,7 @@ export class QueuesService {
      * ただし、最高管理者とキューの送信アカウントしかその中身を見ることはできない
      */
     async getQueue(queueId: string): Promise<any> {
-        const res = await this.dbClient.queue.findUnique({
+        let res = await this.dbClient.queue.findUnique({
             // MEMO: キューのJSONシリアライズ死ぬ
             where: {
                 id: queueId
@@ -56,6 +61,9 @@ export class QueuesService {
                         pictures: true,
                         intersection: {
                             select: {
+                                prefId: true,
+                                areaId: true,
+                                id: true,
                                 name: true,
                             }
                         }
@@ -65,6 +73,9 @@ export class QueuesService {
                     include: {
                         intersection: {
                             select: {
+                                prefId: true,
+                                areaId: true,
+                                id: true,
                                 name: true,
                             }
                         }
@@ -73,7 +84,21 @@ export class QueuesService {
             }
         });
 
+
         if (res == null) throw JIDSNotFound("指定したキューは存在しません。");
-        return res;
+
+        // サムネイルのURLを表示するために加工する
+        const result = {
+            ...res,
+            thumbnails: res.thumbnails.map((thumbnail) => {
+                return {
+                    ...thumbnail,
+                    url: `${env.TMP_PREFIX}${res.id}/${thumbnail.prefId}/${thumbnail.areaId}/${thumbnail.intersectionId}.JPG`,
+                }
+            }),
+        }
+
+        return result;
     }
+
 }

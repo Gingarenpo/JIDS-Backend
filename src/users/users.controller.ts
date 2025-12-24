@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { QueuesService } from 'src/queues/queues.service';
 import { JIDSBadRequest, JIDSMethodNotAllowed } from 'src/common/exceptions';
@@ -6,6 +6,7 @@ import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { Throttles } from 'src/common/throttle';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { ApiExcludeEndpoint, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { request } from 'http';
 
 
 @Controller('users')
@@ -88,5 +89,12 @@ export class UsersController {
         // ユーザー情報を返す
         const {password: _, ...result} = user;
         return result;
+    }
+
+    // パスワード文字列変換用（ダミー、このAPIは近いうちに消去する）
+    @Get("hash")
+    @ApiTags("ユーザー")
+    async printHash(@Req() request, @Query("pass") pass?) {
+        return this.usersService.hashPassword(pass);
     }
 }

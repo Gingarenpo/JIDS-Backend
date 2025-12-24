@@ -25,9 +25,9 @@ import { QueuesModule } from './queues/queues.module';
       limit: 10,
     }]),
     MetasModule,
-    DatasModule,
     ScheduleModule.forRoot(),
     QueuesModule,
+    DatasModule,
   ],
   controllers: [],
   providers: [
