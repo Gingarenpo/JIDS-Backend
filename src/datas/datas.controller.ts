@@ -115,7 +115,10 @@ export class DatasController {
                 thumbnail,
                 detail,
                 cars,
-                peds
+                peds,
+                false,
+                parseInt(pref),
+                parseInt(area),
             ),
             new Promise((resolve) => setTimeout(() => resolve(null), 10000)),
         ]);
