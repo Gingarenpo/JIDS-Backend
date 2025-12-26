@@ -34,4 +34,9 @@ export class MetasController {
     async getAllEndpoints() {
         return this.metasService.getAllEndpoints();
     }
+
+    @Get("codes")
+    async getCodes() {
+        return this.metasService.getCodes();
+    }
 }

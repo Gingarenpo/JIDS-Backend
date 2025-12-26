@@ -58,4 +58,13 @@ export class MetasService {
 
         return endpoints;
     }
+
+    /**
+     * 車灯・歩灯一覧を返す
+     */
+    async getCodes() {
+        const cars = await this.client.car.findMany();
+        const peds = await this.client.ped.findMany();
+        return {"cars": cars, "peds": peds,};
+    }
 }

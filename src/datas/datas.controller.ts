@@ -48,6 +48,8 @@ export class DatasController {
         @Query("detail") detail?: boolean,
         @Query("car") car?: string,
         @Query("ped") ped?: string,
+        @Query("pref") pref?: string,
+        @Query("area") area?: string
     ) {
         // 検索結果を何も絞らないでたたいた場合、全交差点が出てきてしまい時間ばかりかかるので
         // その場合強制終了
@@ -63,6 +65,7 @@ export class DatasController {
         const operationYears = operationYear?.split("～");
         const refreshYears = refreshYear?.split("～");
         const decideYears = decideYear?.split("～");
+        //console.log(operationYears, refreshYears, decideYears);
         // できるだけハードコーディングは避けたいがとりあえず9999年まで継続しているはずがないので…
         let operationYearStart, operationYearEnd, refreshYearStart, refreshYearEnd, decideYearStart, decideYearEnd;
         if (operationYears?.length == 1) {
@@ -70,25 +73,27 @@ export class DatasController {
             operationYearEnd = parseInt(operationYears[0]);
         }
         else {
-            operationYearStart = operationYears?.[0] ? parseInt(operationYears?.[0]) : 0;
-            operationYearEnd = operationYears?.[1] ? parseInt(operationYears?.[1]) : 9999;
+            operationYearStart = operationYears?.[0] ? parseInt(operationYears?.[0]) : undefined;
+            operationYearEnd = operationYears?.[1] ? parseInt(operationYears?.[1]) : undefined;
         }
         if (refreshYears?.length == 1) {
             refreshYearStart = parseInt(refreshYears[0]);
             refreshYearEnd = parseInt(refreshYears[0]);
         }
         else {
-            refreshYearStart = refreshYears?.[0] ? parseInt(refreshYears?.[0]) : 0;
-            refreshYearEnd = refreshYears?.[1] ? parseInt(refreshYears?.[1]) : 9999;
+            refreshYearStart = refreshYears?.[0] ? parseInt(refreshYears?.[0]) : undefined;
+            refreshYearEnd = refreshYears?.[1] ? parseInt(refreshYears?.[1]) : undefined;
         }
         if (decideYears?.length == 1) {
             decideYearStart = parseInt(decideYears[0]);
             decideYearEnd = parseInt(decideYears[0]);
         }
         else {
-            decideYearStart = decideYears?.[0] ? parseInt(decideYears?.[0]) : 0;
-            decideYearEnd = decideYears?.[1] ? parseInt(decideYears?.[1]) : 9999;
+            decideYearStart = decideYears?.[0] ? parseInt(decideYears?.[0]) : undefined;
+            decideYearEnd = decideYears?.[1] ? parseInt(decideYears?.[1]) : undefined;
         }
+
+        //console.log(operationYearStart, operationYearEnd, refreshYearStart, refreshYearEnd, decideYearStart, decideYearEnd);
 
         // クエリを発行
         const intersections: any = await Promise.race([

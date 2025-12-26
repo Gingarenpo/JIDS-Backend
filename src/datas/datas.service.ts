@@ -400,6 +400,7 @@ export class DatasService {
                 // 現地調査データに関しては存在するものと仮定してURLを自動構築する
                 details: intersection.details !== undefined ? intersection.details.map((detail) => {
                     // 各Picturesにおいて繰り返す
+                    if (detail.pictures === undefined) return detail;
                     return {
                         ...detail,
                         pictures: detail.pictures.map((picture) => {
@@ -581,13 +582,17 @@ export class DatasService {
         car?: string[],
         ped?: string[],
         existCheck: boolean = false,
+        pref?: number,
+        area?: number,
     ) : Promise<object> {
-        const intersections = await this.client.intersection.findMany({
+        let intersections = await this.client.intersection.findMany({
             where: {
+                prefId : pref ? {equals: pref} : undefined,
+                areaId : area ? {equals: area} : undefined,
                 road: road ? {contains: road} : undefined,
                 name: name ? {contains: name}  : {not: null},
                 sign: sign ? {contains: sign} : undefined,
-                status: IntersectionStatus[status],
+                status: status ? IntersectionStatus[status]: undefined,
                 comment: comment ? {contains: comment} : undefined,
                 operationYear: operationYearStart ? {
                     gte: operationYearStart,
@@ -631,6 +636,31 @@ export class DatasService {
                         pedCode: true,
                     }
                 },
+                details: true,
+                thumbnails:  {
+                    where: {
+                        result: true,
+                    },
+                    select: {
+                        id: true,
+                        takeDate: true,
+                        comment: true,
+                        queue: {
+                            select: {
+                                id: true,
+                                userId: true,
+                                user: {
+                                    select: {
+                                        name: true,
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    orderBy: {
+                        id: 'desc',
+                    }
+                },
             },
             orderBy: [
                 {
@@ -651,6 +681,14 @@ export class DatasService {
         }
         else if (intersections.length === 0) {
             return [];
+        }
+
+        // サムネイル・現地調査データがないものをはじく
+        if (thumbnail) {
+            intersections = intersections.filter(intersection => intersection.thumbnails.length > 0);
+        }
+        if (detail) {
+            intersections = intersections.filter(intersection => intersection.details.length > 0);
         }
 
         return this.formatIntersection(undefined, undefined, intersections, existCheck);
