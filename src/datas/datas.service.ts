@@ -675,20 +675,20 @@ export class DatasService {
             ]
         });
 
-        if (intersections.length >= (existCheck ? 1000 : 10000)) {
-            // 多すぎるのでエラーを返す
-            return {error: "検索結果が多すぎます。", count: intersections.length};
-        }
-        else if (intersections.length === 0) {
-            return [];
-        }
-
         // サムネイル・現地調査データがないものをはじく
         if (thumbnail) {
             intersections = intersections.filter(intersection => intersection.thumbnails.length > 0);
         }
         if (detail) {
             intersections = intersections.filter(intersection => intersection.details.length > 0);
+        }
+
+        if (intersections.length >= (existCheck ? 1000 : 10000)) {
+            // 多すぎるのでエラーを返す
+            return {error: "検索結果が多すぎます。", count: intersections.length};
+        }
+        else if (intersections.length === 0) {
+            return [];
         }
 
         return this.formatIntersection(undefined, undefined, intersections, existCheck);

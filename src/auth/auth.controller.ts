@@ -1,17 +1,18 @@
 import { Controller, Request, Post, UseGuards, Get } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from 'src/users/users.service';
 import { AuthService } from './auth.service';
 import { Throttle } from '@nestjs/throttler';
 import { Throttles } from 'src/common/throttle';
 import { ApiExcludeEndpoint, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from './auth.guard';
+import { AuthGuard as LocalAuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
 
     constructor(private usersService: UsersService, private authService: AuthService) {}
 
-    @UseGuards(AuthGuard("local"))
+    @UseGuards(LocalAuthGuard("local"))
     @Throttle({default: Throttles.login})
     @Post("login")
     @ApiTags("ユーザー")
@@ -24,9 +25,15 @@ export class AuthController {
         return this.authService.login(user);
     }
 
-    @Get("test")
-    @ApiExcludeEndpoint()
-    async test(@Request() req) {
-        return this.usersService.hashPassword("From2016toGingarenpo");
+    /**
+     * JWTTokenが生きているかどうかを返します。Trueなら生きています。
+     * セッションの生存確認に用いります。
+     * @param req 
+     * @returns 
+     */
+    @Get("alive")
+    @UseGuards(AuthGuard)
+    async alive(@Request() req) {
+        return true;
     }
 }
