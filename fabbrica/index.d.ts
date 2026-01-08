@@ -12,11 +12,14 @@ import type { Thumbnail } from "@prisma/client";
 import type { Detail } from "@prisma/client";
 import type { DetailPicture } from "@prisma/client";
 import type { Bid } from "@prisma/client";
+import type { IntersectionChange } from "@prisma/client";
+import type { IntersectionChangeDetail } from "@prisma/client";
 import type { PrefManageType } from "@prisma/client";
 import type { IntersectionStatus } from "@prisma/client";
 import type { DetailType } from "@prisma/client";
 import type { DetailLight } from "@prisma/client";
 import type { BidStatus } from "@prisma/client";
+import type { ChangeAction } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import type { Resolver } from "@quramy/prisma-fabbrica/lib/internal";
 export { resetSequence, registerScalarFieldValueGenerator, resetScalarFieldValueGenerator } from "@quramy/prisma-fabbrica/lib/internal";
@@ -80,6 +83,7 @@ type UserFactoryDefineInput = {
     loginDate?: Date | null;
     rank?: UserrankFactory | Prisma.RankCreateNestedOneWithoutUsersInput;
     Queue?: Prisma.QueueCreateNestedManyWithoutUserInput;
+    IntersectionChange?: Prisma.IntersectionChangeCreateNestedManyWithoutUserInput;
 };
 type UserTransientFields = Record<string, unknown> & Partial<Record<keyof UserFactoryDefineInput, never>>;
 type UserFactoryTrait<TTransients extends Record<string, unknown>> = {
@@ -393,6 +397,7 @@ type IntersectionFactoryDefineInput = {
     thumbnails?: Prisma.ThumbnailCreateNestedManyWithoutIntersectionInput;
     details?: Prisma.DetailCreateNestedManyWithoutIntersectionInput;
     bids?: Prisma.BidCreateNestedManyWithoutIntersectionInput;
+    IntersectionChange?: Prisma.IntersectionChangeCreateNestedManyWithoutIntersectionInput;
 };
 type IntersectionTransientFields = Record<string, unknown> & Partial<Record<keyof IntersectionFactoryDefineInput, never>>;
 type IntersectionFactoryTrait<TTransients extends Record<string, unknown>> = {
@@ -660,3 +665,92 @@ interface BidFactoryBuilder {
     withTransientFields: <TTransients extends BidTransientFields>(defaultTransientFieldValues: TTransients) => <TOptions extends BidFactoryDefineOptions<TTransients>>(options: TOptions) => BidFactoryInterface<TTransients, BidTraitKeys<TOptions>>;
 }
 export declare const defineBidFactory: BidFactoryBuilder;
+type IntersectionChangeintersectionFactory = {
+    _factoryFor: "Intersection";
+    build: () => PromiseLike<Prisma.IntersectionCreateNestedOneWithoutIntersectionChangeInput["create"]>;
+};
+type IntersectionChangeuserFactory = {
+    _factoryFor: "User";
+    build: () => PromiseLike<Prisma.UserCreateNestedOneWithoutIntersectionChangeInput["create"]>;
+};
+type IntersectionChangeFactoryDefineInput = {
+    id?: string;
+    action?: ChangeAction;
+    reason?: string | null;
+    createDate?: Date;
+    intersection: IntersectionChangeintersectionFactory | Prisma.IntersectionCreateNestedOneWithoutIntersectionChangeInput;
+    user: IntersectionChangeuserFactory | Prisma.UserCreateNestedOneWithoutIntersectionChangeInput;
+    details?: Prisma.IntersectionChangeDetailCreateNestedManyWithoutChangeInput;
+};
+type IntersectionChangeTransientFields = Record<string, unknown> & Partial<Record<keyof IntersectionChangeFactoryDefineInput, never>>;
+type IntersectionChangeFactoryTrait<TTransients extends Record<string, unknown>> = {
+    data?: Resolver<Partial<IntersectionChangeFactoryDefineInput>, BuildDataOptions<TTransients>>;
+} & CallbackDefineOptions<IntersectionChange, Prisma.IntersectionChangeCreateInput, TTransients>;
+type IntersectionChangeFactoryDefineOptions<TTransients extends Record<string, unknown> = Record<string, unknown>> = {
+    defaultData: Resolver<IntersectionChangeFactoryDefineInput, BuildDataOptions<TTransients>>;
+    traits?: {
+        [traitName: string | symbol]: IntersectionChangeFactoryTrait<TTransients>;
+    };
+} & CallbackDefineOptions<IntersectionChange, Prisma.IntersectionChangeCreateInput, TTransients>;
+type IntersectionChangeTraitKeys<TOptions extends IntersectionChangeFactoryDefineOptions<any>> = Exclude<keyof TOptions["traits"], number>;
+export interface IntersectionChangeFactoryInterfaceWithoutTraits<TTransients extends Record<string, unknown>> {
+    readonly _factoryFor: "IntersectionChange";
+    build(inputData?: Partial<Prisma.IntersectionChangeCreateInput & TTransients>): PromiseLike<Prisma.IntersectionChangeCreateInput>;
+    buildCreateInput(inputData?: Partial<Prisma.IntersectionChangeCreateInput & TTransients>): PromiseLike<Prisma.IntersectionChangeCreateInput>;
+    buildList(list: readonly Partial<Prisma.IntersectionChangeCreateInput & TTransients>[]): PromiseLike<Prisma.IntersectionChangeCreateInput[]>;
+    buildList(count: number, item?: Partial<Prisma.IntersectionChangeCreateInput & TTransients>): PromiseLike<Prisma.IntersectionChangeCreateInput[]>;
+    pickForConnect(inputData: IntersectionChange): Pick<IntersectionChange, "id">;
+    create(inputData?: Partial<Prisma.IntersectionChangeCreateInput & TTransients>): PromiseLike<IntersectionChange>;
+    createList(list: readonly Partial<Prisma.IntersectionChangeCreateInput & TTransients>[]): PromiseLike<IntersectionChange[]>;
+    createList(count: number, item?: Partial<Prisma.IntersectionChangeCreateInput & TTransients>): PromiseLike<IntersectionChange[]>;
+    createForConnect(inputData?: Partial<Prisma.IntersectionChangeCreateInput & TTransients>): PromiseLike<Pick<IntersectionChange, "id">>;
+}
+export interface IntersectionChangeFactoryInterface<TTransients extends Record<string, unknown> = Record<string, unknown>, TTraitName extends TraitName = TraitName> extends IntersectionChangeFactoryInterfaceWithoutTraits<TTransients> {
+    use(name: TTraitName, ...names: readonly TTraitName[]): IntersectionChangeFactoryInterfaceWithoutTraits<TTransients>;
+}
+interface IntersectionChangeFactoryBuilder {
+    <TOptions extends IntersectionChangeFactoryDefineOptions>(options: TOptions): IntersectionChangeFactoryInterface<{}, IntersectionChangeTraitKeys<TOptions>>;
+    withTransientFields: <TTransients extends IntersectionChangeTransientFields>(defaultTransientFieldValues: TTransients) => <TOptions extends IntersectionChangeFactoryDefineOptions<TTransients>>(options: TOptions) => IntersectionChangeFactoryInterface<TTransients, IntersectionChangeTraitKeys<TOptions>>;
+}
+export declare const defineIntersectionChangeFactory: IntersectionChangeFactoryBuilder;
+type IntersectionChangeDetailchangeFactory = {
+    _factoryFor: "IntersectionChange";
+    build: () => PromiseLike<Prisma.IntersectionChangeCreateNestedOneWithoutDetailsInput["create"]>;
+};
+type IntersectionChangeDetailFactoryDefineInput = {
+    field?: string;
+    before?: Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue;
+    after?: Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue;
+    change: IntersectionChangeDetailchangeFactory | Prisma.IntersectionChangeCreateNestedOneWithoutDetailsInput;
+};
+type IntersectionChangeDetailTransientFields = Record<string, unknown> & Partial<Record<keyof IntersectionChangeDetailFactoryDefineInput, never>>;
+type IntersectionChangeDetailFactoryTrait<TTransients extends Record<string, unknown>> = {
+    data?: Resolver<Partial<IntersectionChangeDetailFactoryDefineInput>, BuildDataOptions<TTransients>>;
+} & CallbackDefineOptions<IntersectionChangeDetail, Prisma.IntersectionChangeDetailCreateInput, TTransients>;
+type IntersectionChangeDetailFactoryDefineOptions<TTransients extends Record<string, unknown> = Record<string, unknown>> = {
+    defaultData: Resolver<IntersectionChangeDetailFactoryDefineInput, BuildDataOptions<TTransients>>;
+    traits?: {
+        [traitName: string | symbol]: IntersectionChangeDetailFactoryTrait<TTransients>;
+    };
+} & CallbackDefineOptions<IntersectionChangeDetail, Prisma.IntersectionChangeDetailCreateInput, TTransients>;
+type IntersectionChangeDetailTraitKeys<TOptions extends IntersectionChangeDetailFactoryDefineOptions<any>> = Exclude<keyof TOptions["traits"], number>;
+export interface IntersectionChangeDetailFactoryInterfaceWithoutTraits<TTransients extends Record<string, unknown>> {
+    readonly _factoryFor: "IntersectionChangeDetail";
+    build(inputData?: Partial<Prisma.IntersectionChangeDetailCreateInput & TTransients>): PromiseLike<Prisma.IntersectionChangeDetailCreateInput>;
+    buildCreateInput(inputData?: Partial<Prisma.IntersectionChangeDetailCreateInput & TTransients>): PromiseLike<Prisma.IntersectionChangeDetailCreateInput>;
+    buildList(list: readonly Partial<Prisma.IntersectionChangeDetailCreateInput & TTransients>[]): PromiseLike<Prisma.IntersectionChangeDetailCreateInput[]>;
+    buildList(count: number, item?: Partial<Prisma.IntersectionChangeDetailCreateInput & TTransients>): PromiseLike<Prisma.IntersectionChangeDetailCreateInput[]>;
+    pickForConnect(inputData: IntersectionChangeDetail): Pick<IntersectionChangeDetail, "id">;
+    create(inputData?: Partial<Prisma.IntersectionChangeDetailCreateInput & TTransients>): PromiseLike<IntersectionChangeDetail>;
+    createList(list: readonly Partial<Prisma.IntersectionChangeDetailCreateInput & TTransients>[]): PromiseLike<IntersectionChangeDetail[]>;
+    createList(count: number, item?: Partial<Prisma.IntersectionChangeDetailCreateInput & TTransients>): PromiseLike<IntersectionChangeDetail[]>;
+    createForConnect(inputData?: Partial<Prisma.IntersectionChangeDetailCreateInput & TTransients>): PromiseLike<Pick<IntersectionChangeDetail, "id">>;
+}
+export interface IntersectionChangeDetailFactoryInterface<TTransients extends Record<string, unknown> = Record<string, unknown>, TTraitName extends TraitName = TraitName> extends IntersectionChangeDetailFactoryInterfaceWithoutTraits<TTransients> {
+    use(name: TTraitName, ...names: readonly TTraitName[]): IntersectionChangeDetailFactoryInterfaceWithoutTraits<TTransients>;
+}
+interface IntersectionChangeDetailFactoryBuilder {
+    <TOptions extends IntersectionChangeDetailFactoryDefineOptions>(options: TOptions): IntersectionChangeDetailFactoryInterface<{}, IntersectionChangeDetailTraitKeys<TOptions>>;
+    withTransientFields: <TTransients extends IntersectionChangeDetailTransientFields>(defaultTransientFieldValues: TTransients) => <TOptions extends IntersectionChangeDetailFactoryDefineOptions<TTransients>>(options: TOptions) => IntersectionChangeDetailFactoryInterface<TTransients, IntersectionChangeDetailTraitKeys<TOptions>>;
+}
+export declare const defineIntersectionChangeDetailFactory: IntersectionChangeDetailFactoryBuilder;

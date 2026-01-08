@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { QueuesService } from './queues.service';
 import { ApiForbiddenResponse, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { ThrottlerGuard } from '@nestjs/throttler';
@@ -9,6 +9,10 @@ import { RankGuard, Ranks } from 'src/rank/rank.guard';
 import { Req, Param } from '@nestjs/common';
 import { JIDSForbidden } from 'src/common/exceptions';
 
+/**
+ * キューの取得、承認、及び予備調査チェックなどのAPI窓口
+ * 所謂情報提供組が使用するところ
+ */
 @Controller('queues')
 export class QueuesController {
 

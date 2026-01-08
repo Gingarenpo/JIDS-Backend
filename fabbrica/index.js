@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.defineBidFactory = exports.defineDetailPictureFactory = exports.defineDetailFactory = exports.defineThumbnailFactory = exports.defineQueueFactory = exports.defineIntersectionFactory = exports.definePedOfIntersectionFactory = exports.defineCarOfIntersectionFactory = exports.definePedFactory = exports.defineCarFactory = exports.defineAreaFactory = exports.definePrefFactory = exports.defineUserFactory = exports.defineRankFactory = exports.initialize = exports.resetScalarFieldValueGenerator = exports.registerScalarFieldValueGenerator = exports.resetSequence = void 0;
+exports.defineIntersectionChangeDetailFactory = exports.defineIntersectionChangeFactory = exports.defineBidFactory = exports.defineDetailPictureFactory = exports.defineDetailFactory = exports.defineThumbnailFactory = exports.defineQueueFactory = exports.defineIntersectionFactory = exports.definePedOfIntersectionFactory = exports.defineCarOfIntersectionFactory = exports.definePedFactory = exports.defineCarFactory = exports.defineAreaFactory = exports.definePrefFactory = exports.defineUserFactory = exports.defineRankFactory = exports.initialize = exports.resetScalarFieldValueGenerator = exports.registerScalarFieldValueGenerator = exports.resetSequence = void 0;
 const internal_1 = require("@quramy/prisma-fabbrica/lib/internal");
 var internal_2 = require("@quramy/prisma-fabbrica/lib/internal");
 Object.defineProperty(exports, "resetSequence", { enumerable: true, get: function () { return internal_2.resetSequence; } });
@@ -26,6 +26,10 @@ const modelFieldDefinitions = [{
                 name: "Queue",
                 type: "Queue",
                 relationName: "QueueToUser"
+            }, {
+                name: "IntersectionChange",
+                type: "IntersectionChange",
+                relationName: "IntersectionChangeToUser"
             }]
     }, {
         name: "Pref",
@@ -115,6 +119,10 @@ const modelFieldDefinitions = [{
                 name: "bids",
                 type: "Bid",
                 relationName: "BidToIntersection"
+            }, {
+                name: "IntersectionChange",
+                type: "IntersectionChange",
+                relationName: "IntersectionToIntersectionChange"
             }]
     }, {
         name: "Queue",
@@ -170,6 +178,28 @@ const modelFieldDefinitions = [{
                 name: "intersection",
                 type: "Intersection",
                 relationName: "BidToIntersection"
+            }]
+    }, {
+        name: "IntersectionChange",
+        fields: [{
+                name: "intersection",
+                type: "Intersection",
+                relationName: "IntersectionToIntersectionChange"
+            }, {
+                name: "user",
+                type: "User",
+                relationName: "IntersectionChangeToUser"
+            }, {
+                name: "details",
+                type: "IntersectionChangeDetail",
+                relationName: "IntersectionChangeToIntersectionChangeDetail"
+            }]
+    }, {
+        name: "IntersectionChangeDetail",
+        fields: [{
+                name: "change",
+                type: "IntersectionChange",
+                relationName: "IntersectionChangeToIntersectionChangeDetail"
             }]
     }];
 function autoGenerateRankScalarsOrEnums({ seq }) {
@@ -1412,3 +1442,183 @@ exports.defineBidFactory = ((options) => {
     return defineBidFactoryInternal(options, {});
 });
 exports.defineBidFactory.withTransientFields = defaultTransientFieldValues => options => defineBidFactoryInternal(options, defaultTransientFieldValues);
+function isIntersectionChangeintersectionFactory(x) {
+    return x?._factoryFor === "Intersection";
+}
+function isIntersectionChangeuserFactory(x) {
+    return x?._factoryFor === "User";
+}
+function autoGenerateIntersectionChangeScalarsOrEnums({ seq }) {
+    return {
+        action: "CREATE"
+    };
+}
+function defineIntersectionChangeFactoryInternal({ defaultData: defaultDataResolver, onAfterBuild, onBeforeCreate, onAfterCreate, traits: traitsDefs = {} }, defaultTransientFieldValues) {
+    const getFactoryWithTraits = (traitKeys = []) => {
+        const seqKey = {};
+        const getSeq = () => (0, internal_1.getSequenceCounter)(seqKey);
+        const screen = (0, internal_1.createScreener)("IntersectionChange", modelFieldDefinitions);
+        const handleAfterBuild = (0, internal_1.createCallbackChain)([
+            onAfterBuild,
+            ...traitKeys.map(traitKey => traitsDefs[traitKey]?.onAfterBuild),
+        ]);
+        const handleBeforeCreate = (0, internal_1.createCallbackChain)([
+            ...traitKeys.slice().reverse().map(traitKey => traitsDefs[traitKey]?.onBeforeCreate),
+            onBeforeCreate,
+        ]);
+        const handleAfterCreate = (0, internal_1.createCallbackChain)([
+            onAfterCreate,
+            ...traitKeys.map(traitKey => traitsDefs[traitKey]?.onAfterCreate),
+        ]);
+        const build = async (inputData = {}) => {
+            const seq = getSeq();
+            const requiredScalarData = autoGenerateIntersectionChangeScalarsOrEnums({ seq });
+            const resolveValue = (0, internal_1.normalizeResolver)(defaultDataResolver);
+            const [transientFields, filteredInputData] = (0, internal_1.destructure)(defaultTransientFieldValues, inputData);
+            const resolverInput = { seq, ...transientFields };
+            const defaultData = await traitKeys.reduce(async (queue, traitKey) => {
+                const acc = await queue;
+                const resolveTraitValue = (0, internal_1.normalizeResolver)(traitsDefs[traitKey]?.data ?? {});
+                const traitData = await resolveTraitValue(resolverInput);
+                return {
+                    ...acc,
+                    ...traitData,
+                };
+            }, resolveValue(resolverInput));
+            const defaultAssociations = {
+                intersection: isIntersectionChangeintersectionFactory(defaultData.intersection) ? {
+                    create: await defaultData.intersection.build()
+                } : defaultData.intersection,
+                user: isIntersectionChangeuserFactory(defaultData.user) ? {
+                    create: await defaultData.user.build()
+                } : defaultData.user
+            };
+            const data = { ...requiredScalarData, ...defaultData, ...defaultAssociations, ...filteredInputData };
+            await handleAfterBuild(data, transientFields);
+            return data;
+        };
+        const buildList = (...args) => Promise.all((0, internal_1.normalizeList)(...args).map(data => build(data)));
+        const pickForConnect = (inputData) => ({
+            id: inputData.id
+        });
+        const create = async (inputData = {}) => {
+            const [transientFields] = (0, internal_1.destructure)(defaultTransientFieldValues, inputData);
+            const data = await build(inputData).then(screen);
+            await handleBeforeCreate(data, transientFields);
+            const createdData = await getClient().intersectionChange.create({ data });
+            await handleAfterCreate(createdData, transientFields);
+            return createdData;
+        };
+        const createList = (...args) => Promise.all((0, internal_1.normalizeList)(...args).map(data => create(data)));
+        const createForConnect = (inputData = {}) => create(inputData).then(pickForConnect);
+        return {
+            _factoryFor: "IntersectionChange",
+            build,
+            buildList,
+            buildCreateInput: build,
+            pickForConnect,
+            create,
+            createList,
+            createForConnect,
+        };
+    };
+    const factory = getFactoryWithTraits();
+    const useTraits = (name, ...names) => {
+        return getFactoryWithTraits([name, ...names]);
+    };
+    return {
+        ...factory,
+        use: useTraits,
+    };
+}
+exports.defineIntersectionChangeFactory = ((options) => {
+    return defineIntersectionChangeFactoryInternal(options, {});
+});
+exports.defineIntersectionChangeFactory.withTransientFields = defaultTransientFieldValues => options => defineIntersectionChangeFactoryInternal(options, defaultTransientFieldValues);
+function isIntersectionChangeDetailchangeFactory(x) {
+    return x?._factoryFor === "IntersectionChange";
+}
+function autoGenerateIntersectionChangeDetailScalarsOrEnums({ seq }) {
+    return {
+        field: (0, internal_1.getScalarFieldValueGenerator)().String({ modelName: "IntersectionChangeDetail", fieldName: "field", isId: false, isUnique: false, seq })
+    };
+}
+function defineIntersectionChangeDetailFactoryInternal({ defaultData: defaultDataResolver, onAfterBuild, onBeforeCreate, onAfterCreate, traits: traitsDefs = {} }, defaultTransientFieldValues) {
+    const getFactoryWithTraits = (traitKeys = []) => {
+        const seqKey = {};
+        const getSeq = () => (0, internal_1.getSequenceCounter)(seqKey);
+        const screen = (0, internal_1.createScreener)("IntersectionChangeDetail", modelFieldDefinitions);
+        const handleAfterBuild = (0, internal_1.createCallbackChain)([
+            onAfterBuild,
+            ...traitKeys.map(traitKey => traitsDefs[traitKey]?.onAfterBuild),
+        ]);
+        const handleBeforeCreate = (0, internal_1.createCallbackChain)([
+            ...traitKeys.slice().reverse().map(traitKey => traitsDefs[traitKey]?.onBeforeCreate),
+            onBeforeCreate,
+        ]);
+        const handleAfterCreate = (0, internal_1.createCallbackChain)([
+            onAfterCreate,
+            ...traitKeys.map(traitKey => traitsDefs[traitKey]?.onAfterCreate),
+        ]);
+        const build = async (inputData = {}) => {
+            const seq = getSeq();
+            const requiredScalarData = autoGenerateIntersectionChangeDetailScalarsOrEnums({ seq });
+            const resolveValue = (0, internal_1.normalizeResolver)(defaultDataResolver);
+            const [transientFields, filteredInputData] = (0, internal_1.destructure)(defaultTransientFieldValues, inputData);
+            const resolverInput = { seq, ...transientFields };
+            const defaultData = await traitKeys.reduce(async (queue, traitKey) => {
+                const acc = await queue;
+                const resolveTraitValue = (0, internal_1.normalizeResolver)(traitsDefs[traitKey]?.data ?? {});
+                const traitData = await resolveTraitValue(resolverInput);
+                return {
+                    ...acc,
+                    ...traitData,
+                };
+            }, resolveValue(resolverInput));
+            const defaultAssociations = {
+                change: isIntersectionChangeDetailchangeFactory(defaultData.change) ? {
+                    create: await defaultData.change.build()
+                } : defaultData.change
+            };
+            const data = { ...requiredScalarData, ...defaultData, ...defaultAssociations, ...filteredInputData };
+            await handleAfterBuild(data, transientFields);
+            return data;
+        };
+        const buildList = (...args) => Promise.all((0, internal_1.normalizeList)(...args).map(data => build(data)));
+        const pickForConnect = (inputData) => ({
+            id: inputData.id
+        });
+        const create = async (inputData = {}) => {
+            const [transientFields] = (0, internal_1.destructure)(defaultTransientFieldValues, inputData);
+            const data = await build(inputData).then(screen);
+            await handleBeforeCreate(data, transientFields);
+            const createdData = await getClient().intersectionChangeDetail.create({ data });
+            await handleAfterCreate(createdData, transientFields);
+            return createdData;
+        };
+        const createList = (...args) => Promise.all((0, internal_1.normalizeList)(...args).map(data => create(data)));
+        const createForConnect = (inputData = {}) => create(inputData).then(pickForConnect);
+        return {
+            _factoryFor: "IntersectionChangeDetail",
+            build,
+            buildList,
+            buildCreateInput: build,
+            pickForConnect,
+            create,
+            createList,
+            createForConnect,
+        };
+    };
+    const factory = getFactoryWithTraits();
+    const useTraits = (name, ...names) => {
+        return getFactoryWithTraits([name, ...names]);
+    };
+    return {
+        ...factory,
+        use: useTraits,
+    };
+}
+exports.defineIntersectionChangeDetailFactory = ((options) => {
+    return defineIntersectionChangeDetailFactoryInternal(options, {});
+});
+exports.defineIntersectionChangeDetailFactory.withTransientFields = defaultTransientFieldValues => options => defineIntersectionChangeDetailFactoryInternal(options, defaultTransientFieldValues);

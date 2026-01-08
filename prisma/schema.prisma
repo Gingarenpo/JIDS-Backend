@@ -18,7 +18,7 @@ generator fabbrica {
 datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
-  schemas    = ["core", "info"]
+  schemas    = ["core", "info", "log"]
   extensions = [postgis]
 }
 
@@ -39,17 +39,18 @@ model Rank {
 
 // ユーザー情報
 model User {
-  id       String @id @db.VarChar(64) // ユーザーID
-  address  String @unique @db.VarChar(256) // ユーザーの連絡先（emailかもしれないしTwitterIDかもしれない）
-  name     String @unique @db.VarChar(64) // ユーザー名
-  password String @db.VarChar(256) // パスワード（ハッシュ化したもの）
-  createDate DateTime @default(now()) @db.Timestamptz(3) // 作成日時
-  loginDate DateTime? @db.Timestamptz(3) // ログイン日時
+  id         String    @id @db.VarChar(64) // ユーザーID
+  address    String    @unique @db.VarChar(256) // ユーザーの連絡先（emailかもしれないしTwitterIDかもしれない）
+  name       String    @unique @db.VarChar(64) // ユーザー名
+  password   String    @db.VarChar(256) // パスワード（ハッシュ化したもの）
+  createDate DateTime  @default(now()) @db.Timestamptz(3) // 作成日時
+  loginDate  DateTime? @db.Timestamptz(3) // ログイン日時
 
   // 外部キー関連でくっつくもの
-  rank   Rank    @relation(fields: [rankId], references: [id], onDelete: Cascade, onUpdate: Cascade) // ユーザーランクインスタンス、これ自体は特にDBに追加されない
-  rankId Int     @default(0) // ランクIDの格納場所
-  Queue  Queue[]
+  rank               Rank                 @relation(fields: [rankId], references: [id], onDelete: Cascade, onUpdate: Cascade) // ユーザーランクインスタンス、これ自体は特にDBに追加されない
+  rankId             Int                  @default(0) // ランクIDの格納場所
+  Queue              Queue[]
+  IntersectionChange IntersectionChange[]
 
   @@map("user")
   @@schema("core")
@@ -70,7 +71,7 @@ model Pref {
   name     String                @unique @db.VarChar(16) // 都道府県名
   centroid Unsupported("POINT")? // 重心座標ポイント
   area     Area[] // 都道府県に属するエリアの一覧
-  manage PrefManageType @default(POLICE) // 都道府県管理タイプ
+  manage   PrefManageType        @default(POLICE) // 都道府県管理タイプ
 
   @@map("pref")
   @@schema("core")
@@ -84,8 +85,8 @@ model Area {
   name         String         @db.VarChar(32) // エリア名
   description  String? // エリア領域
   area         Decimal?       @db.Decimal(6, 2) // エリア面積
-  unknownStart Int @default(801) // 不明番号とみなす開始位置
-  managed Boolean @default(true) // 公安委管轄？
+  unknownStart Int            @default(801) // 不明番号とみなす開始位置
+  managed      Boolean        @default(true) // 公安委管轄？
   intersection Intersection[] // 管轄交差点
 
   @@id([prefId, id])
@@ -102,9 +103,8 @@ model Car {
   description String? // 説明
   comment     String? // コメント
   LED         Boolean? @default(false) // false = 電球式 true = LED null = 未確定（どっちもある）
-  createDate DateTime @db.Date @map("create_date")
-  delFlg Boolean @default(false) @map("del_flg")
-  
+  createDate  DateTime @map("create_date") @db.Date
+  delFlg      Boolean  @default(false) @map("del_flg")
 
   // このコードを内包する交差点
   intersections CarOfIntersection[]
@@ -121,8 +121,8 @@ model Ped {
   description String? // 説明
   comment     String? // コメント
   LED         Boolean? @default(false) // false = 電球式 true = LED null = 未確定（どっちもある）
-  createDate DateTime @db.Date @map("create_date")
-  delFlg Boolean @default(false) @map("del_flg")
+  createDate  DateTime @map("create_date") @db.Date
+  delFlg      Boolean  @default(false) @map("del_flg")
 
   // このコードを内包する交差点
   intersections PedOfIntersection[]
@@ -133,36 +133,36 @@ model Ped {
 
 // 車灯コードと交差点をつなぐ中間テーブル
 model CarOfIntersection {
-  car Car @relation(fields: [carCode], references: [code], onDelete: Cascade, onUpdate: Cascade)
+  car     Car    @relation(fields: [carCode], references: [code], onDelete: Cascade, onUpdate: Cascade)
   carCode String
 
-  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id], onDelete: Cascade, onUpdate: Cascade)
-  prefId Int
-  areaId Int
+  intersection   Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id], onDelete: Cascade, onUpdate: Cascade)
+  prefId         Int
+  areaId         Int
   intersectionId String
 
   @@id([carCode, prefId, areaId, intersectionId])
-  @@map("car_of_intersection")
-  @@schema("info")
   @@index([prefId, areaId, intersectionId])
   @@index([carCode])
+  @@map("car_of_intersection")
+  @@schema("info")
 }
 
 // 歩灯コードと交差点をつなぐ中間テーブル
 model PedOfIntersection {
-  ped Ped @relation(fields: [pedCode], references: [code] , onDelete: Cascade, onUpdate: Cascade)
+  ped     Ped    @relation(fields: [pedCode], references: [code], onDelete: Cascade, onUpdate: Cascade)
   pedCode String
 
-  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id], onDelete: Cascade, onUpdate: Cascade)
-  prefId Int
-  areaId Int
+  intersection   Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id], onDelete: Cascade, onUpdate: Cascade)
+  prefId         Int
+  areaId         Int
   intersectionId String
 
   @@id([pedCode, prefId, areaId, intersectionId])
-  @@map("ped_of_intersection")
-  @@schema("info")
   @@index([prefId, areaId, intersectionId])
   @@index([pedCode])
+  @@map("ped_of_intersection")
+  @@schema("info")
 }
 
 // 交差点状態
@@ -172,30 +172,31 @@ enum IntersectionStatus {
   MOVE // 移管
   MERGE // 統合
   UNKNOWN // 不明（行方不明に相当）
+
   @@schema("info")
 }
 
 // 交差点情報
 model Intersection {
-  id     String @db.VarChar(8) // アルファベットが含まれるためVarCharとする
+  id     String             @db.VarChar(8) // アルファベットが含まれるためVarCharとする
   areaId Int // エリアID（都道府県IDはここに持たなくても連鎖できる）
   prefId Int // 都道府県ID
-  area   Area   @relation(fields: [areaId, prefId], references: [id, prefId], onDelete: Cascade, onUpdate: Cascade) // エリア情報
+  area   Area               @relation(fields: [areaId, prefId], references: [id, prefId], onDelete: Cascade, onUpdate: Cascade) // エリア情報
   status IntersectionStatus @default(LIVE)
 
   // 後方互換
   road String? @db.VarChar(64) // 所属道路
 
   // 交差点名系
-  name           String?  @db.VarChar(128) // 交差点名称（公式）
+  name           String? @db.VarChar(128) // 交差点名称（公式）
   sign           String? @db.VarChar(128) // 地名板名称（地名板が存在しない場合はnull、ある場合はname=sign）
   isOfficialName Boolean @default(false) @map("is_official_name") // 公式？
 
   // 交差点メタ情報
   location      Unsupported("GEOMETRY")? // 存在する座標POINT（NULLを許容しているのは予備調査の兼ね合い）
-  decideYear    Int?                  @map("decide_year") // 意思決定年度YYYY
-  operationYear Int?                  @map("operation_year") // 稼働開始年度YYYY（※意思決定年度とほとんど同じはず）
-  refreshYear   Int?                  @map("refresh_year") // 更新年度YYYY（後方互換性）
+  decideYear    Int?                     @map("decide_year") // 意思決定年度YYYY
+  operationYear Int?                     @map("operation_year") // 稼働開始年度YYYY（※意思決定年度とほとんど同じはず）
+  refreshYear   Int?                     @map("refresh_year") // 更新年度YYYY（後方互換性）
 
   // 交差点灯器情報（コードM-M）
   cars CarOfIntersection[]
@@ -217,10 +218,11 @@ model Intersection {
 
   // 詳細関連の外部キーリレーション
   thumbnails Thumbnail[]
-  details Detail[]
+  details    Detail[]
 
   // その他外部リレーション
-  bids Bid[] // 入札情報
+  bids               Bid[] // 入札情報
+  IntersectionChange IntersectionChange[]
 
   @@id([prefId, areaId, id])
   @@unique([prefId, areaId, id])
@@ -230,69 +232,67 @@ model Intersection {
 
 // キュー情報（ユーザー単位というよりはキューで管理する）
 model Queue {
-  id     String @unique @default(uuid())
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId String
-  createDate DateTime @default(now()) @db.Timestamptz(3)
-  acceptDate DateTime? @db.Timestamptz(3) // キューの承認日時（してない場合NULL）
-  deniedDate DateTime? @db.Timestamptz(3) // キューの却下日時（してない場合NULL）
-  exist Boolean @default(true) // キューが物理的に存在するかどうか
-  comment String? // キュー送信者が追加で送信するコメント
+  id            String    @unique @default(uuid())
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId        String
+  createDate    DateTime  @default(now()) @db.Timestamptz(3)
+  acceptDate    DateTime? @db.Timestamptz(3) // キューの承認日時（してない場合NULL）
+  deniedDate    DateTime? @db.Timestamptz(3) // キューの却下日時（してない場合NULL）
+  exist         Boolean   @default(true) // キューが物理的に存在するかどうか
+  comment       String? // キュー送信者が追加で送信するコメント
   statusComment String? // 承認・却下などが行われたときに追加するコメント
 
   // 外部キー関連
   thumbnails Thumbnail[]
-  details Detail[]
+  details    Detail[]
 
   @@id([id, userId])
   @@map("queue")
   @@schema("info")
 }
 
-
 // サムネイル情報
 model Thumbnail {
-  id Int  @default(autoincrement()) @id // サロゲートキー
+  id       Int       @id @default(autoincrement()) // サロゲートキー
   takeDate DateTime? @db.Date // 撮影日時（EXIF情報から取得する。ない場合もあるのでNULLあり）
-  result Boolean @default(true) // true=採用、false=非採用
-  comment String?
+  result   Boolean   @default(true) // true=採用、false=非採用
+  comment  String?
 
   // 外部キーリレーション
-  queue Queue @relation(fields: [queueId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  queueId String
-  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id], onDelete: Cascade, onUpdate: Cascade)
-  prefId Int
-  areaId Int
-  intersectionId String @db.VarChar(8)
+  queue          Queue        @relation(fields: [queueId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  queueId        String
+  intersection   Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id], onDelete: Cascade, onUpdate: Cascade)
+  prefId         Int
+  areaId         Int
+  intersectionId String       @db.VarChar(8)
 
-  @@map("thumbnail")
-  @@schema("info")
   @@index([prefId, areaId, intersectionId])
   @@index([queueId])
+  @@map("thumbnail")
+  @@schema("info")
 }
 
 // 現地調査情報ヘッダー（写真そのものに関しては別テーブルに分岐）
 model Detail {
-  id Int @default(autoincrement()) @id // サロゲートキー
+  id       Int       @id @default(autoincrement()) // サロゲートキー
   takeDate DateTime? @db.Date // 撮影日時（ディレクトリ構成的に絶対入るけど万一を考えてNULL許容）
-  comment String? // 単純な備考欄
-  memo String? // 撮影メモ（これも入るけど万一を考えてNULL許容）
+  comment  String? // 単純な備考欄
+  memo     String? // 撮影メモ（これも入るけど万一を考えてNULL許容）
 
   // 外部キーリレーション
-  queue Queue @relation(fields: [queueId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  queueId String 
-  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id], onDelete: Cascade, onUpdate: Cascade)
-  prefId Int
-  areaId Int
-  intersectionId String @db.VarChar(8)
+  queue          Queue        @relation(fields: [queueId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  queueId        String
+  intersection   Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id], onDelete: Cascade, onUpdate: Cascade)
+  prefId         Int
+  areaId         Int
+  intersectionId String       @db.VarChar(8)
 
   pictures DetailPicture[]
 
-
-  @@map("detail")
-  @@schema("info")
   @@index([prefId, areaId, intersectionId])
   @@index([queueId])
+  @@map("detail")
+  @@schema("info")
 }
 
 // 灯器種類
@@ -305,6 +305,7 @@ enum DetailType {
   C // 制御機
   P // 押しボタン（現在未使用）
   K // 感知器（現在未使用）
+
   @@schema("info")
 }
 
@@ -315,26 +316,26 @@ enum DetailLight {
   R // 赤
   X // 矢印
   F // 消灯
+
   @@schema("info")
-} 
+}
 
 // 現地調査情報の写真ごとのデータ（一応後方互換性で採点できるようにしておくためのもの）
 // 最悪切り離せる
 model DetailPicture {
-  id Int // サロゲート
-  type DetailType // 灯器の種類（1文字）
-  number Int // 各種類別の通し番号
-  light DetailLight? // 灯器色（SHのみ使用）
+  id        Int // サロゲート
+  type      DetailType // 灯器の種類（1文字）
+  number    Int // 各種類別の通し番号
+  light     DetailLight? // 灯器色（SHのみ使用）
   subNumber Int? // 第二通し番号（車灯矢印、押しボタン、制御機、感知器、機械類、その他に使用
-  plate Boolean @default(false) // 銘板の場合はtrue
-  comment String? // 灯器についてのコメント
-  result Boolean @default(false) // 採用？
+  plate     Boolean      @default(false) // 銘板の場合はtrue
+  comment   String? // 灯器についてのコメント
+  result    Boolean      @default(false) // 採用？
 
   // 採点基準的なもの（現在未使用）
-  
 
   // 外部リレーション
-  detail Detail @relation(fields: [detailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  detail   Detail @relation(fields: [detailId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   detailId Int
 
   @@id([id, detailId])
@@ -352,13 +353,11 @@ enum BidStatus {
   @@schema("info")
 }
 
-
 // 入札情報
 // すでに登録されている交差点とリレーションして紐づける
 model Bid {
-
-  prefId Int
-  areaId Int
+  prefId         Int
+  areaId         Int
   intersectionId String
 
   // 交差点リレーション
@@ -366,22 +365,82 @@ model Bid {
 
   // 主キー系
   year Int // YYYY
-  id Int // 入札番号（あくまで管理用、都道府県によりまちまち）
+  id   Int // 入札番号（あくまで管理用、都道府県によりまちまち）
 
   // 更新系（ENUM）
-  car BidStatus?
-  ped BidStatus?
+  car        BidStatus?
+  ped        BidStatus?
   controller BidStatus?
-  sensor BidStatus?
-  sound BidStatus?
-  button BidStatus?
-  pole BidStatus?
-  other BidStatus?
+  sensor     BidStatus?
+  sound      BidStatus?
+  button     BidStatus?
+  pole       BidStatus?
+  other      BidStatus?
 
   // コメント
   comment String?
 
-  @@schema("info")
-  @@map("bid")
   @@id([prefId, areaId, intersectionId, year])
+  @@map("bid")
+  @@schema("info")
+}
+
+// 予備調査情報変更アクション一覧
+enum ChangeAction {
+  CREATE // 追加
+  UPDATE // 更新
+  DELETE // 削除（基本ない）
+
+  @@schema("log")
+}
+
+// 予備調査情報変更ログヘッダ
+model IntersectionChange {
+  id String @id @default(uuid()) // UUIDで管理
+
+  // 交差点を特定するための主キー情報
+  prefId         Int
+  areaId         Int
+  intersectionId String @db.VarChar(8)
+
+  // 接続リレーション
+  intersection Intersection @relation(fields: [prefId, areaId, intersectionId], references: [prefId, areaId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  // 実行ユーザー
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // 行った行為
+  action ChangeAction
+  reason String? // 備考
+
+  // 行った日付
+  createDate DateTime @default(now()) @db.Timestamptz(3)
+
+  // 明細一覧
+  details IntersectionChangeDetail[]
+
+  @@index([prefId, areaId, intersectionId])
+  @@index([createDate])
+  @@schema("log")
+}
+
+// 予備調査情報変更ログ明細（具体的にどのフィールドを変更したのか）
+// コピーするとめんどくさいので「どのフィールド」を「どのように」変更したのかを記録して
+// あとで繋げる
+model IntersectionChangeDetail {
+  // 所謂主キー（サロゲート）
+  id Int @id @default(autoincrement())
+
+  // ヘッダ
+  change   IntersectionChange @relation(fields: [changeId], references: [id], onDelete: Cascade)
+  changeId String // UUID
+
+  // どのフィールドをどれからどれに変えたのか
+  field  String @db.VarChar(64)
+  before Json?
+  after  Json?
+
+  @@index([changeId])
+  @@schema("info")
 }

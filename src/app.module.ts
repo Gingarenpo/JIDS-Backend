@@ -10,6 +10,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { UploadModule } from './upload/upload.module';
 import { JIDSthrottleGuard } from './common/JIDSthrottle.guard';
 import { QueuesModule } from './queues/queues.module';
+import { ValidatesModule } from './validates/validates.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { QueuesModule } from './queues/queues.module';
     ScheduleModule.forRoot(),
     QueuesModule,
     DatasModule,
+    ValidatesModule,
   ],
   controllers: [],
   providers: [
