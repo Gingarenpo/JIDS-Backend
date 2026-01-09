@@ -20,12 +20,14 @@ export class MetasController {
     async getInfo() {
         // DBから取得できるもの系
         const d = await this.metasService.getInfo();
-        const stdout = execSync(`find ${process.env.DATA_DIR} -name *.JPG | wc -l`).toString();
+        // TODO: 時間かかり散らかるので改善案を考えておく
+        //const stdout = execSync(`find ${process.env.DATA_DIR} -name *.JPG | wc -l`).toString();
         return {
             nodeJSVersion: process.versions.node, // NodeJSのバージョン
             JIDSVersion: process.env.npm_package_version, // JIDSパッケージのバージョン
             JIDSHost: await app.getUrl(), // ホスト名
-            pictureCount: parseInt(stdout), // 画像枚数
+            //pictureCount: parseInt(stdout), // 画像枚数
+            pictureCount: d[0].thumbnailCount + d[0].detailPictureCount,
             ...d[0],
         };
     }

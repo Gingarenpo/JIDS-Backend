@@ -22,7 +22,8 @@ export class MetasService {
             (SELECT COUNT(*)::INTEGER FROM info.intersection) AS "intersectionCount",
             (SELECT COUNT(*)::INTEGER FROM (SELECT id FROM info.detail GROUP BY "prefId", "areaId", "id")) AS "detailCount",
             (SELECT COUNT(*)::INTEGER FROM (SELECT id FROM info.thumbnail GROUP BY "prefId", "areaId", "id")) AS "thumbnailCount",
-            (SELECT COUNT(*)::INTEGER FROM core.user) AS "userCount"
+            (SELECT COUNT(*)::INTEGER FROM core.user) AS "userCount",
+            (SELECT COUNT(*)::INTEGER FROM info.detail_picture WHERE result = TRUE ) AS "detailPictureCount"
         `;
 
     }

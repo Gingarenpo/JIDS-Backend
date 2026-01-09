@@ -423,6 +423,7 @@ model IntersectionChange {
   @@index([prefId, areaId, intersectionId])
   @@index([createDate])
   @@schema("log")
+  @@map("intersection_change")
 }
 
 // 予備調査情報変更ログ明細（具体的にどのフィールドを変更したのか）
@@ -443,4 +444,5 @@ model IntersectionChangeDetail {
 
   @@index([changeId])
   @@schema("log")
+  @@map("intersection_change_detail")
 }

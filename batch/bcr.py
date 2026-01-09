@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import bar_chart_race as bcr
 import pandas as pd
 import numpy as np
-import japanize_matplotlib
+import matplotlib_fontja
 import warnings
 import os
 
@@ -125,5 +125,5 @@ df_detail = df_detail.set_index("date")
 df_detail.columns = [prefs[int(a[1])-1] for a in df_detail.columns]
 
 # バーチャートレース作成
-make(df_thumbnail, "JIDS Thumbnails", os.path.dirname(__file__) + "/thumbnail.gif")
-make(df_detail, "JIDS Details", os.path.dirname(__file__) + "/detail.gif")
+make(df_thumbnail, "サムネイル数", os.path.dirname(__file__) + "/thumbnail.gif")
+make(df_detail, "現地調査数", os.path.dirname(__file__) + "/detail.gif")
