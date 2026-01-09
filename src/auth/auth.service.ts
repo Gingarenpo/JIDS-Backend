@@ -18,6 +18,17 @@ export class AuthService {
         return user.password === hashedPassword ? user : null;
     }
 
+    // 旧システムから移行したユーザーのためにレガシーなユーザー認証を行うためのもの
+    async oldValidateUser(id: string, password: string): Promise<any> {
+        const user = await this.usersService.findUser(id);
+        if (user === null) {
+            return null;
+        }
+        // ハッシュ化
+        const hashedPassword = await this.usersService.oldHashPassword(password);
+        return user.password === hashedPassword ? user : null;
+    }
+
     // JWTトークンを返す
     async login(user: User) {
         // ペイロードを取得
@@ -25,6 +36,7 @@ export class AuthService {
             user_id: user.id,
             user_name: user.name,
             user_rank: user.rankId,
+            legacy: user.legacyHash,
         };
 
         return {

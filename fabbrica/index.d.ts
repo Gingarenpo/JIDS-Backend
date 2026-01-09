@@ -81,6 +81,7 @@ type UserFactoryDefineInput = {
     password?: string;
     createDate?: Date;
     loginDate?: Date | null;
+    legacyHash?: boolean;
     rank?: UserrankFactory | Prisma.RankCreateNestedOneWithoutUsersInput;
     Queue?: Prisma.QueueCreateNestedManyWithoutUserInput;
     IntersectionChange?: Prisma.IntersectionChangeCreateNestedManyWithoutUserInput;

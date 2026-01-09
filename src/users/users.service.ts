@@ -10,6 +10,7 @@ export interface JwtPayload {
     user_id: String,
     user_name: String,
     user_rank: number,
+    legacy: boolean,
 }
 
 @Injectable()
@@ -97,6 +98,7 @@ export class UsersService {
             throw JIDSBadRequest(errors);
         }
 
+        // パスワードが更新された場合はlegacyフラグを外す
         const newUser = this.dbClient.user.update({
             where: {
                 id: user.id
@@ -104,7 +106,8 @@ export class UsersService {
             data: {
                 name: name ?? user.name,
                 address: address ?? user.address,
-                password: password != "" ? this.hashPassword(password) : user.password
+                password: password != "" ? this.hashPassword(password) : user.password,
+                legacyHash: password != "" ? false : user.legacyHash
             }
         });
 
@@ -125,6 +128,27 @@ export class UsersService {
             password = createHash("sha256").update(password).digest("hex");
         }
         return password;
+    }
+
+    // PHP時代のレガシーなパスワードを解析するためのハッシュ
+    // このハッシュは推奨されません。これで一致した場合はパスワードの変更を促します
+    oldHashPassword(password: string): string {
+        let hashValue = password;
+
+        // 5回ハッシュ化
+        for (let i = 0; i < 5; i++) {
+            hashValue = createHash("sha256").update(hashValue).digest("hex");
+        }
+
+        // Saltの追加
+        hashValue = "Gingarenpo-JIDS-Salt" + hashValue;
+
+        // 再度5回ハッシュ化
+        for (let i = 0; i < 5; i++) {
+            hashValue = createHash("sha256").update(hashValue).digest("hex");
+        }
+
+        return hashValue;
     }
 
     

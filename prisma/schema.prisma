@@ -52,6 +52,9 @@ model User {
   Queue              Queue[]
   IntersectionChange IntersectionChange[]
 
+  // レガシーなバージョンのハッシュを使用している場合のフラグ
+  legacyHash  Boolean @default(false)
+
   @@map("user")
   @@schema("core")
 }

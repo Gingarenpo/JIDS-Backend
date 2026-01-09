@@ -15,9 +15,14 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
 
     // バリデーションチェック
     async validate(id: string, password: string): Promise<any> {
-        const user = await this.authService.validateUser(id, password);
+        let user = await this.authService.validateUser(id, password);
         if (!user) {
-            throw new UnauthorizedException();
+            // レガシーなハッシュで試みる
+            user = await this.authService.oldValidateUser(id, password);
+            if (!user) {
+                throw new UnauthorizedException();
+            }
+            user.legacy = true;
         }
         return user;
     }
