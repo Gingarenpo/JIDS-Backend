@@ -68,3 +68,6 @@ batch/.venv
 
 # batch fact
 batch/*.gif
+
+#sql
+*.sql
