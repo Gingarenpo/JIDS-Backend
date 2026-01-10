@@ -17,6 +17,7 @@ async function bootstrap() {
   // CORS
   app.enableCors();
 
+
   // APIドキュメントを一応生成しておく
   const options = new DocumentBuilder()
     .setTitle("JIDS API Documents")
@@ -56,7 +57,8 @@ async function bootstrap() {
   }, express.static(process.env.TMP_DIR ?? "public"));
   
 
-  await app.listen(3000, "0.0.0.0");
+  await app.listen(3000, process.env.LISTEN_ADDRESS ?? "0.0.0.0");
+
 
   // コンソールしておく
   console.log("JIDS-Backend is running on: " + (await app.getUrl()));
