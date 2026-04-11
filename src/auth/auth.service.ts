@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { UsersService, JwtPayload } from '../users/users.service';
 import { User } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
+import * as argon2 from "argon2";
 
 @Injectable()
 export class AuthService {
@@ -14,8 +15,7 @@ export class AuthService {
             return null;
         }
         // 入力されたパスワードをハッシュ化
-        const hashedPassword = await this.usersService.hashPassword(password);
-        return user.password === hashedPassword ? user : null;
+        return await argon2.verify(user.password, password) ? user : null;
     }
 
     // 旧システムから移行したユーザーのためにレガシーなユーザー認証を行うためのもの
