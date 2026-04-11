@@ -3,7 +3,9 @@ import { User } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
 import { createHash } from 'crypto';
 import { JIDSBadRequest, JIDSInternalServerError } from 'src/common/exceptions';
-import internal from 'stream';
+import * as argon2 from "argon2";
+
+
 
 // インターフェースとして、JWTトークンのペイロードを定義する
 export interface JwtPayload {
@@ -116,18 +118,9 @@ export class UsersService {
 
 
     // パスワードをハッシュを用いて作成
-    hashPassword(password: string): string {
-        // ハッシュパスワードのアルゴリズム
-        // (sha256 x 256 + JIDS) x 128
-        // ちょっと遅いけど解読は著しく時間かかる
-        for (let i = 0; i < 256; i++) {
-            password = createHash("sha256").update(password).digest("hex");
-        }
-        password += "JIDS";
-        for (let i = 0; i < 128; i++) {
-            password = createHash("sha256").update(password).digest("hex");
-        }
-        return password;
+    async hashPassword(password: string): Promise<string> {
+        // argon2を用いてハッシュ化
+        return await argon2.hash(password);
     }
 
     // PHP時代のレガシーなパスワードを解析するためのハッシュ
